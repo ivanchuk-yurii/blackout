@@ -9,19 +9,22 @@
     "lint": "eslint",
     "format": "prettier --write .",
     "prepare": "git config core.hooksPath .githooks || true",
-    "gen:types": "supabase gen types typescript --local > lib/supabase/types.ts"
+    "db:types": "supabase gen types typescript --local > lib/supabase/types.ts",
+    "db:reset": "supabase db reset && npm run db:types"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs}": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,css,md}": "prettier --write"
+    "*.{json,css,md,sql}": "prettier --write"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.2",
+    "nanoid": "^6.0.0",
     "next": "16.2.10",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -35,6 +38,7 @@
     "eslint-config-prettier": "^10.1.8",
     "lint-staged": "^17.0.8",
     "prettier": "^3.9.5",
+    "prettier-plugin-sql": "^0.20.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

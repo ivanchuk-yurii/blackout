@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { Share } from './share';
 import { LogoutButton } from './logout-button';
 
 export default async function UserPage() {
@@ -20,9 +21,13 @@ export default async function UserPage() {
           <Link href="/user/set-name">Change name</Link>
         </li>
         <li>
+          <Link href="/user/set-profile">Edit profile</Link>
+        </li>
+        <li>
           <Link href="/user/set-password">Change password</Link>
         </li>
       </ul>
+      <Share />
       <LogoutButton />
     </main>
   );

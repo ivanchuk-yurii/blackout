@@ -1,4 +1,17 @@
 {
   "semi": true,
-  "singleQuote": true
+  "singleQuote": true,
+  "plugins": ["prettier-plugin-sql"],
+  "overrides": [
+    {
+      "files": "*.sql",
+      "options": {
+        "language": "postgresql",
+        "keywordCase": "lower",
+        "dataTypeCase": "lower",
+        "functionCase": "lower",
+        "identifierCase": "preserve"
+      }
+    }
+  ]
 }

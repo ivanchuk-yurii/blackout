@@ -52,7 +52,25 @@ export type Database = {
         };
         Relationships: [];
       };
-      buddy_invites: {
+      buddy_requests: {
+        Row: {
+          buddy_id: string;
+          created_at: string;
+          user_id: string;
+        };
+        Insert: {
+          buddy_id: string;
+          created_at?: string;
+          user_id: string;
+        };
+        Update: {
+          buddy_id?: string;
+          created_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      buddy_shares: {
         Row: {
           expires_at: string;
           id: string;
@@ -70,21 +88,27 @@ export type Database = {
         };
         Relationships: [];
       };
-      buddy_requests: {
+      hangouts: {
         Row: {
-          buddy_id: string;
           created_at: string;
-          user_id: string;
+          creator_id: string;
+          ended_at: string | null;
+          id: string;
+          name: string;
         };
         Insert: {
-          buddy_id: string;
           created_at?: string;
-          user_id: string;
+          creator_id: string;
+          ended_at?: string | null;
+          id?: string;
+          name: string;
         };
         Update: {
-          buddy_id?: string;
           created_at?: string;
-          user_id?: string;
+          creator_id?: string;
+          ended_at?: string | null;
+          id?: string;
+          name?: string;
         };
         Relationships: [];
       };

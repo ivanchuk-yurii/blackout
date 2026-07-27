@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const PROTECTED_ROUTES = ['/home', '/user'];
+const PROTECTED_ROUTES = ['/home', '/user', '/buddies'];
 
 export async function proxy(request: NextRequest) {
   const isProtected = PROTECTED_ROUTES.some(
