@@ -88,27 +88,134 @@ export type Database = {
         };
         Relationships: [];
       };
-      hangouts: {
+      hangout_invites: {
         Row: {
           created_at: string;
+          hangout_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          hangout_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          hangout_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_invites_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      hangout_members: {
+        Row: {
+          created_at: string;
+          hangout_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          hangout_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          hangout_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_members_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      hangout_requests: {
+        Row: {
+          created_at: string;
+          hangout_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          hangout_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          hangout_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_requests_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      hangout_shares: {
+        Row: {
+          expires_at: string;
+          id: string;
+          token: string;
+        };
+        Insert: {
+          expires_at: string;
+          id: string;
+          token: string;
+        };
+        Update: {
+          expires_at?: string;
+          id?: string;
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_shares_id_fkey';
+            columns: ['id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      hangouts: {
+        Row: {
           creator_id: string;
           ended_at: string | null;
           id: string;
           name: string;
+          started_at: string;
+          timezone: string;
         };
         Insert: {
-          created_at?: string;
           creator_id: string;
           ended_at?: string | null;
           id?: string;
           name: string;
+          started_at?: string;
+          timezone: string;
         };
         Update: {
-          created_at?: string;
           creator_id?: string;
           ended_at?: string | null;
           id?: string;
           name?: string;
+          started_at?: string;
+          timezone?: string;
         };
         Relationships: [];
       };
@@ -138,7 +245,23 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      my_buddies: {
+        Row: {
+          id: string | null;
+        };
+        Relationships: [];
+      };
+      my_hangouts: {
+        Row: {
+          creator_id: string | null;
+          ended_at: string | null;
+          id: string | null;
+          name: string | null;
+          started_at: string | null;
+          timezone: string | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       [_ in never]: never;

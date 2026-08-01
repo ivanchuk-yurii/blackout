@@ -93,3 +93,11 @@ values
     now(),
     now()
   );
+
+insert into
+  public.buddies (user_id, buddy_id)
+values
+  (
+    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222'
+  );

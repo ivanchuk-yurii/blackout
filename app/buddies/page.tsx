@@ -7,7 +7,7 @@ export default async function BuddiesPage() {
 
   if (!data?.claims) return null;
 
-  const { data: buddies } = await supabase.rpc('my_buddies');
+  const { data: buddies } = await supabase.from('my_buddies').select();
 
   return (
     <main>

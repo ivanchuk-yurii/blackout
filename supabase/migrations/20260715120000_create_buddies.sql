@@ -146,13 +146,10 @@ create policy "user manages own buddy shares" on public.buddy_shares for all to 
 create policy "read buddy share by token" on public.buddy_shares for
 select
   to authenticated using (
-    token = nullif(
-      (
-        select
-          current_setting('request.headers', true)
-      )::json ->> 'x-share-token',
-      ''
-    )
+    token = (
+      select
+        current_setting('request.headers', true)
+    )::json ->> 'x-share-token'
     and expires_at > now()
   );
 
@@ -167,13 +164,19 @@ set
   );
 $$;
 
-create or replace function my_buddies () returns table (id uuid) language sql stable security invoker
-set
-  search_path = public as $$
-  select case when b.user_id = auth.uid () then b.buddy_id else b.user_id end
-  from public.buddies b
-  where b.user_id = auth.uid () or b.buddy_id = auth.uid ();
-$$;
+create view public.my_buddies
+with
+  (security_invoker = on) as
+select
+  case
+    when b.user_id = auth.uid () then b.buddy_id
+    else b.user_id
+  end as id
+from
+  public.buddies b
+where
+  b.user_id = auth.uid ()
+  or b.buddy_id = auth.uid ();
 
 create or replace function private.remove_buddy_request () returns trigger language plpgsql security definer
 set

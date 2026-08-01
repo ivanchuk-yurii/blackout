@@ -3,16 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { Database } from '@/lib/supabase/types';
-
-type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+import type { Tables, Enums } from '@/lib/supabase/types';
 
 export function ProfileForm({
   userId,
   initialProfile,
 }: {
   userId: string;
-  initialProfile: Omit<UserProfile, 'id'> | null;
+  initialProfile: Omit<Tables<'user_profiles'>, 'id'> | null;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +19,7 @@ export function ProfileForm({
   async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const gender = form.get('gender') as Database['public']['Enums']['gender'];
+    const gender = form.get('gender') as Enums<'gender'>;
     const birthDate = form.get('birth_date') as string;
     const weight = Number(form.get('weight'));
     const height = Number(form.get('height'));
