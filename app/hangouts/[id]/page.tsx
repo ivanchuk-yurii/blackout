@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@/lib/supabase/service';
 import { Hangout } from './hangout';
+import { Drinks } from './drinks';
 import { Share } from './share';
 import { End } from './end';
 import { HangoutState } from './state';
@@ -41,6 +42,18 @@ export default async function HangoutPage({
     .select()
     .eq('hangout_id', id);
 
+  const { data: drinks } = await supabase
+    .from('drinks')
+    .select()
+    .order('category')
+    .order('name');
+
+  const { data: hangoutDrinks } = await supabase
+    .from('hangout_drinks')
+    .select()
+    .eq('hangout_id', id)
+    .eq('user_id', userId);
+
   async function getState(): Promise<HangoutState> {
     const { data: invited } = await supabase
       .from('hangout_invites')
@@ -70,6 +83,7 @@ export default async function HangoutPage({
   }
 
   const state = isCreator ? HangoutState.Initial : await getState();
+  const isParticipant = isCreator || state === HangoutState.Member;
 
   const buddies = isCreator
     ? ((await supabase.from('my_buddies').select()).data ?? [])
@@ -90,9 +104,17 @@ export default async function HangoutPage({
         userId={userId}
         isCreator={isCreator}
         initialState={state}
-        buddies={buddies}
+        buddies={buddies as { id: string }[]}
         members={members ?? []}
         token={token}
+      />
+
+      <Drinks
+        hangoutId={id}
+        userId={userId}
+        canAdd={isParticipant && !hangout.ended_at}
+        drinks={drinks ?? []}
+        hangoutDrinks={hangoutDrinks ?? []}
       />
 
       {isCreator && !hangout.ended_at && <Share hangoutId={id} />}

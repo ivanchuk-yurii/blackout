@@ -75,7 +75,9 @@ select private.is_hangout_creator (is_hangout_participant.hangout_id)
            or private.is_hangout_member(is_hangout_participant.hangout_id, auth.uid ());
 $$;
 
-create view public.my_hangouts as
+create view public.my_hangouts
+with
+  (security_invoker = on) as
 with
   visible as (
     select
@@ -97,13 +99,7 @@ where
     from
       visible
   )
-union
-select
-  h.*
-from
-  public.hangouts h
-where
-  h.id in (
+  or h.id in (
     select
       m.hangout_id
     from
@@ -128,9 +124,20 @@ create policy "creator manages own hangout" on public.hangouts for all to authen
   ) = creator_id
 );
 
-create policy "user reads hangout members" on public.hangout_members for
+create policy "user reads own hangout members" on public.hangout_members for
 select
   to authenticated using (private.is_hangout_participant (hangout_id));
+
+create policy "user reads buddy hangout members" on public.hangout_members for
+select
+  to authenticated using (
+    user_id in (
+      select
+        id
+      from
+        public.my_buddies
+    )
+  );
 
 create policy "creator accepts hangout request" on public.hangout_members for insert to authenticated
 with

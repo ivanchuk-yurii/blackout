@@ -88,6 +88,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      drinks: {
+        Row: {
+          abv: number;
+          calories: number | null;
+          category: Database['public']['Enums']['drink_categories'];
+          id: string;
+          name: string;
+          user_id: string | null;
+          volume: number | null;
+        };
+        Insert: {
+          abv: number;
+          calories?: number | null;
+          category: Database['public']['Enums']['drink_categories'];
+          id?: string;
+          name: string;
+          user_id?: string | null;
+          volume?: number | null;
+        };
+        Update: {
+          abv?: number;
+          calories?: number | null;
+          category?: Database['public']['Enums']['drink_categories'];
+          id?: string;
+          name?: string;
+          user_id?: string | null;
+          volume?: number | null;
+        };
+        Relationships: [];
+      };
+      hangout_drinks: {
+        Row: {
+          created_at: string;
+          drink_id: string;
+          hangout_id: string;
+          id: string;
+          user_id: string;
+          volume: number;
+        };
+        Insert: {
+          created_at?: string;
+          drink_id: string;
+          hangout_id: string;
+          id?: string;
+          user_id: string;
+          volume: number;
+        };
+        Update: {
+          created_at?: string;
+          drink_id?: string;
+          hangout_id?: string;
+          id?: string;
+          user_id?: string;
+          volume?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_drinks_drink_id_fkey';
+            columns: ['drink_id'];
+            isOneToOne: false;
+            referencedRelation: 'drinks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       hangout_invites: {
         Row: {
           created_at: string;
@@ -219,6 +291,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      spots: {
+        Row: {
+          created_at: string;
+          google_maps_id: string;
+          hangout_id: string;
+          id: string;
+          image: string | null;
+          lat: number;
+          lon: number;
+          name: string;
+        };
+        Insert: {
+          created_at?: string;
+          google_maps_id: string;
+          hangout_id: string;
+          id?: string;
+          image?: string | null;
+          lat: number;
+          lon: number;
+          name: string;
+        };
+        Update: {
+          created_at?: string;
+          google_maps_id?: string;
+          hangout_id?: string;
+          id?: string;
+          image?: string | null;
+          lat?: number;
+          lon?: number;
+          name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'spots_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           birth_date: string;
@@ -267,6 +380,7 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
+      drink_categories: 'beer' | 'cider' | 'wine' | 'cocktail' | 'spirit';
       gender: 'male' | 'female';
     };
     CompositeTypes: {
@@ -398,6 +512,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      drink_categories: ['beer', 'cider', 'wine', 'cocktail', 'spirit'],
       gender: ['male', 'female'],
     },
   },
