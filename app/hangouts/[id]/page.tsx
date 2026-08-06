@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from '@/lib/supabase/service';
 import { Hangout } from './hangout';
 import { Drinks } from './drinks';
 import { Spots } from './spots';
+import { Camera } from './camera';
 import { Share } from './share';
 import { End } from './end';
 import { HangoutState } from './state';
@@ -96,6 +97,24 @@ export default async function HangoutPage({
     ? ((await supabase.from('my_buddies').select()).data ?? [])
     : [];
 
+  let photos: { path: string; url: string }[] = [];
+  if (isParticipant) {
+    const { data: files } = await supabase.storage
+      .from('hangout-photos')
+      .list(id);
+    const paths = (files ?? [])
+      .filter((file) => file.id !== null)
+      .map((file) => `${id}/${file.name}`);
+    if (paths.length) {
+      const { data: signed } = await supabase.storage
+        .from('hangout-photos')
+        .createSignedUrls(paths, 60 * 60);
+      photos = (signed ?? [])
+        .filter((entry) => !entry.error && entry.signedUrl && entry.path)
+        .map((entry) => ({ path: entry.path!, url: entry.signedUrl! }));
+    }
+  }
+
   return (
     <main>
       <h1>{hangout.name}</h1>
@@ -128,6 +147,12 @@ export default async function HangoutPage({
         hangoutId={id}
         canAdd={isParticipant && !hangout.ended_at}
         spots={spots ?? []}
+      />
+
+      <Camera
+        hangoutId={id}
+        canAdd={isParticipant && !hangout.ended_at}
+        initialPhotos={photos}
       />
 
       {isCreator && !hangout.ended_at && <Share hangoutId={id} />}

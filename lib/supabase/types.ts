@@ -415,22 +415,6 @@ export type Database = {
           started_at: string | null;
           timezone: string | null;
         };
-        Insert: {
-          creator_id?: string | null;
-          ended_at?: string | null;
-          id?: string | null;
-          name?: string | null;
-          started_at?: string | null;
-          timezone?: string | null;
-        };
-        Update: {
-          creator_id?: string | null;
-          ended_at?: string | null;
-          id?: string | null;
-          name?: string | null;
-          started_at?: string | null;
-          timezone?: string | null;
-        };
         Relationships: [];
       };
     };
