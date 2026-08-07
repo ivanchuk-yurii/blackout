@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Share } from './share';
+import { PushNotifications } from './push-notifications';
 import { LogoutButton } from './logout-button';
 
 export default async function UserPage() {
@@ -28,6 +29,7 @@ export default async function UserPage() {
         </li>
       </ul>
       <Share />
+      <PushNotifications />
       <LogoutButton />
     </main>
   );

@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@supabase/server": "npm:@supabase/server@^1.4.1",
+    "@/lib/supabase/types": "../../../lib/supabase/types.ts"
+  }
+}

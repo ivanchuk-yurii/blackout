@@ -4,6 +4,8 @@ grant usage on schema private to authenticated;
 
 create extension if not exists pg_cron;
 
+create extension if not exists pg_net;
+
 alter default privileges in schema public
 grant
 select

@@ -326,6 +326,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          created_at: string;
+          deleted_at: string | null;
+          id: string;
+          metadata: Json | null;
+          read_at: string | null;
+          type: Database['public']['Enums']['notification_types'];
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          metadata?: Json | null;
+          read_at?: string | null;
+          type: Database['public']['Enums']['notification_types'];
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          deleted_at?: string | null;
+          id?: string;
+          metadata?: Json | null;
+          read_at?: string | null;
+          type?: Database['public']['Enums']['notification_types'];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       spots: {
         Row: {
           created_at: string;
@@ -424,6 +454,11 @@ export type Database = {
     Enums: {
       drink_categories: 'beer' | 'cider' | 'wine' | 'cocktail' | 'spirit';
       gender: 'male' | 'female';
+      notification_types:
+        | 'buddy_request'
+        | 'hangout_request'
+        | 'hangout_invite'
+        | 'hangout_ended';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -556,6 +591,12 @@ export const Constants = {
     Enums: {
       drink_categories: ['beer', 'cider', 'wine', 'cocktail', 'spirit'],
       gender: ['male', 'female'],
+      notification_types: [
+        'buddy_request',
+        'hangout_request',
+        'hangout_invite',
+        'hangout_ended',
+      ],
     },
   },
 } as const;

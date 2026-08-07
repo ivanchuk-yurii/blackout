@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { createClient } from '@/lib/supabase/server';
 
 export default async function BuddiesPage() {
@@ -15,7 +17,7 @@ export default async function BuddiesPage() {
 
       {buddies?.map((buddy) => (
         <div key={buddy.id}>
-          <p>{buddy.id}</p>
+          <Link href={`/buddies/${buddy.id}`}>{buddy.id}</Link>
         </div>
       ))}
     </main>

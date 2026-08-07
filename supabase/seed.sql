@@ -1,3 +1,15 @@
+select
+  vault.create_secret (
+    'http://supabase_kong_blackout:8000/functions/v1',
+    'edge_functions_url'
+  );
+
+select
+  vault.create_secret (
+    'sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz',
+    'edge_functions_key'
+  );
+
 insert into
   auth.users (
     instance_id,

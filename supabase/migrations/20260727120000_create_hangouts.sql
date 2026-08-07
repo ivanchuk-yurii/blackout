@@ -351,15 +351,3 @@ select
     '0 0 * * *',
     $$delete from public.hangout_shares where expires_at < now()$$
   );
-
-select
-  cron.schedule (
-    'end-hangouts-daily',
-    '0 * * * *',
-    $$
-    update public.hangouts h
-    set ended_at = now()
-    where h.ended_at is null
-      and extract(hour from now() at time zone h.timezone) = 7
-    $$
-  );
