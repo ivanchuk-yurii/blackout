@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from '@/lib/supabase/service';
 import { Hangout } from './hangout';
 import { Drinks } from './drinks';
 import { Spots } from './spots';
+import { SosMap } from './sos-map';
 import { Camera } from './camera';
 import { Share } from './share';
 import { End } from './end';
@@ -97,6 +98,11 @@ export default async function HangoutPage({
     ? ((await supabase.from('my_buddies').select()).data ?? [])
     : [];
 
+  const sosAlerts = isParticipant
+    ? ((await supabase.from('sos_alerts').select().eq('hangout_id', id)).data ??
+      [])
+    : [];
+
   let photos: { path: string; url: string }[] = [];
   if (isParticipant) {
     const { data: files } = await supabase.storage
@@ -130,10 +136,13 @@ export default async function HangoutPage({
         userId={userId}
         isCreator={isCreator}
         initialState={state}
+        inSos={sosAlerts.some((alert) => alert.user_id === userId)}
         buddies={buddies as { id: string }[]}
         members={members ?? []}
         token={token}
       />
+
+      <SosMap hangoutId={id} userId={userId} alerts={sosAlerts} />
 
       <Drinks
         hangoutId={id}

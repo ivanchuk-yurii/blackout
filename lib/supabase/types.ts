@@ -356,6 +356,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      sos_alerts: {
+        Row: {
+          hangout_id: string;
+          lat: number | null;
+          lon: number | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          hangout_id: string;
+          lat?: number | null;
+          lon?: number | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          hangout_id?: string;
+          lat?: number | null;
+          lon?: number | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sos_alerts_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sos_alerts_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_hangouts';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       spots: {
         Row: {
           created_at: string;
