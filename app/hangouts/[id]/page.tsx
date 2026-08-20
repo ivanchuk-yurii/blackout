@@ -40,6 +40,12 @@ export default async function HangoutPage({
     hangout.creator_id,
   );
 
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select()
+    .eq('id', userId)
+    .maybeSingle();
+
   const { data: members } = await supabase
     .from('hangout_members')
     .select()
@@ -53,9 +59,10 @@ export default async function HangoutPage({
 
   const { data: hangoutDrinks } = await supabase
     .from('hangout_drinks')
-    .select()
+    .select('*, drink:drinks(*)')
     .eq('hangout_id', id)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .order('created_at');
 
   const { data: spots } = await supabase
     .from('spots')
@@ -148,6 +155,7 @@ export default async function HangoutPage({
         hangoutId={id}
         userId={userId}
         canAdd={isParticipant && !hangout.ended_at}
+        profile={profile}
         drinks={drinks ?? []}
         hangoutDrinks={hangoutDrinks ?? []}
       />

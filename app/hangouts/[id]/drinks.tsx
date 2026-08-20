@@ -3,19 +3,23 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Constants, type Tables } from '@/lib/supabase/types';
+import { FullHangoutDrink } from '@/lib/supabase/custom-types';
+import { Stats } from './stats';
 
 export function Drinks({
   hangoutId,
   userId,
   canAdd,
+  profile,
   drinks: initialDrinkList,
   hangoutDrinks: initialDrinks,
 }: {
   hangoutId: string;
   userId: string;
   canAdd: boolean;
+  profile: Tables<'user_profiles'> | null;
   drinks: Tables<'drinks'>[];
-  hangoutDrinks: Tables<'hangout_drinks'>[];
+  hangoutDrinks: FullHangoutDrink[];
 }) {
   const [drinks, setDrinks] = useState(initialDrinkList);
   const [drinkLogs, setDrinkLogs] = useState(initialDrinks);
@@ -59,7 +63,7 @@ export function Drinks({
         drink_id: drinkId,
         volume: Number(volume),
       })
-      .select()
+      .select('*, drink:drinks(*)')
       .single();
     setPending(false);
     if (error) {
@@ -231,6 +235,8 @@ export function Drinks({
           )}
         </div>
       )}
+
+      <Stats hangoutDrinks={drinkLogs} profile={profile} />
 
       <ul>
         {drinkLogs.map((log) => (
