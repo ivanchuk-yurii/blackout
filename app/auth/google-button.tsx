@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { IconBrandGoogleFilled } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { FieldError } from '@/components/ui/field';
 import { authCallbackUrl } from './callback/url';
 
 export function GoogleButton() {
@@ -22,16 +25,18 @@ export function GoogleButton() {
 
     if (authError) {
       setError(authError.message);
-      setPending(false);
     }
+
+    setPending(false);
   }
 
   return (
     <>
-      {error && <p role="alert">{error}</p>}
-      <button type="button" onClick={handleGoogle} disabled={pending}>
+      <FieldError>{error}</FieldError>
+      <Button type="button" size="lg" onClick={handleGoogle} disabled={pending}>
+        <IconBrandGoogleFilled />
         {pending ? 'Redirecting…' : 'Continue with Google'}
-      </button>
+      </Button>
     </>
   );
 }

@@ -9,11 +9,20 @@ const PROTECTED_ROUTES = [
   '/hangouts',
 ];
 
+const PROTECTED_AUTH_ROUTES = [
+  '/auth/compliance',
+  '/auth/set-name',
+  '/auth/set-password',
+];
+
 export async function proxy(request: NextRequest) {
   const isProtected = PROTECTED_ROUTES.some(
     (route) =>
       request.nextUrl.pathname === route ||
       request.nextUrl.pathname.startsWith(route + '/'),
+  );
+  const isAuthProtected = PROTECTED_AUTH_ROUTES.some(
+    (route) => request.nextUrl.pathname === route,
   );
   let response = NextResponse.next({ request });
 
@@ -40,22 +49,57 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
 
-  if (!isProtected) return response;
-
-  const url = request.nextUrl.clone();
   let redirectTo = '';
 
-  if (!data?.claims) {
-    redirectTo = '/auth';
-  } else if (!data.claims.user_metadata?.name) {
-    redirectTo = '/user/set-name';
+  if (isProtected) {
+    if (!data?.claims) {
+      redirectTo = '/auth';
+    } else if (!data.claims.user_metadata?.compliance_accepted_at) {
+      redirectTo = '/auth/compliance';
+    } else if (!data.claims.user_metadata?.name) {
+      redirectTo = '/auth/set-name';
+    }
+  } else if (isAuthProtected) {
+    if (!data?.claims) redirectTo = '/auth';
+  } else if (request.nextUrl.pathname === '/auth') {
+    if (data?.claims) redirectTo = '/home';
   }
 
-  if (!redirectTo || url.pathname === redirectTo) return response;
+  if (!redirectTo && request.nextUrl.pathname === '/home') {
+    const next = request.cookies.get('next')?.value;
+    if (next) {
+      const dest = new URL(next, request.nextUrl.origin);
+      if (dest.origin === request.nextUrl.origin) {
+        dest.searchParams.set('from-auth', '');
+        const redirect = NextResponse.redirect(dest);
+        redirect.cookies.delete('next');
+        return redirect;
+      }
+    }
+  }
 
+  if (!redirectTo || request.nextUrl.pathname === redirectTo) return response;
+
+  const url = request.nextUrl.clone();
   url.pathname = redirectTo;
+  url.search = '';
+
   const redirect = NextResponse.redirect(url);
   response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+
+  if (isProtected && request.nextUrl.pathname !== '/home') {
+    redirect.cookies.set(
+      'next',
+      request.nextUrl.pathname + request.nextUrl.search,
+      {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 600,
+      },
+    );
+  }
+
   return redirect;
 }
 

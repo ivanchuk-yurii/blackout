@@ -5,14 +5,11 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
-import { EmailInput } from '@/components/common/email-input';
 import { PageHeader } from '@/components/common/page-header';
 import { PasswordInput } from '@/components/common/password-input';
-import { authCallbackUrl } from '../callback/url';
 
-export default function RegisterPage() {
+export default function SetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,53 +21,41 @@ export default function RegisterPage() {
     setError(null);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: authCallbackUrl },
-    });
-
+    const { error: authError } = await supabase.auth.updateUser({ password });
     if (authError) {
       setError(authError.message);
       setPending(false);
       return;
     }
 
-    router.push(`/auth/sent?type=register&email=${encodeURIComponent(email)}`);
+    router.push('/home');
   }
 
   return (
     <main className="flex flex-1 flex-col">
       <PageHeader />
       <form onSubmit={handleSubmit} className="mt-28 flex flex-col gap-6 px-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-medium">Register to start</h1>
-          <p className="text-sm text-muted-foreground">
-            To track your hangouts &amp; compare stats with friends you need an
-            account
-          </p>
-        </div>
+        <h1 className="text-2xl font-medium">Change your password</h1>
         <div className="flex flex-col gap-4">
-          <EmailInput
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
           <PasswordInput
             autoComplete="new-password"
+            placeholder="New password"
             minLength={6}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <p className="text-sm text-muted-foreground">
+            At least 6 characters.
+          </p>
           <FieldError>{error}</FieldError>
         </div>
         <Button
           type="submit"
           size="lg"
-          disabled={!email || !password || pending}
+          disabled={password.length < 6 || pending}
         >
-          {pending ? 'Creating account…' : 'Create account'}
+          {pending ? 'Saving…' : 'Save password'}
         </Button>
       </form>
     </main>

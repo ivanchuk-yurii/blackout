@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (!error) {
       if (isPasswordReset) {
-        return NextResponse.redirect(`${origin}/user/set-password`);
+        return NextResponse.redirect(`${origin}/auth/set-password`);
       }
 
       return NextResponse.redirect(`${origin}/home`);
