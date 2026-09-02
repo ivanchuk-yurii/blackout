@@ -1,23 +1,23 @@
 create table public.buddy_requests (
-  user_id uuid not null references auth.users (id) on delete cascade,
-  buddy_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  buddy_id uuid not null references public.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, buddy_id),
   check (user_id <> buddy_id)
 );
 
 create table public.buddies (
-  user_id uuid not null references auth.users (id) on delete cascade,
-  buddy_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
+  buddy_id uuid not null references public.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, buddy_id),
   check (user_id <> buddy_id)
 );
 
 create table public.buddy_shares (
-  id uuid not null references auth.users (id) on delete cascade,
+  id uuid not null references public.users (id) on delete cascade,
   token varchar not null,
-  expires_at timestamptz not null,
+  expires_at timestamptz not null default (now() + interval '1 day'),
   primary key (id, token)
 );
 
@@ -164,19 +164,30 @@ set
   );
 $$;
 
-create view public.my_buddies
+create view public.my_buddy_ids
 with
   (security_invoker = on) as
 select
   case
     when b.user_id = auth.uid () then b.buddy_id
     else b.user_id
-  end as id
+  end as id,
+  b.created_at
 from
   public.buddies b
 where
   b.user_id = auth.uid ()
   or b.buddy_id = auth.uid ();
+
+create view public.my_buddies
+with
+  (security_invoker = on) as
+select
+  u.*,
+  i.created_at
+from
+  public.my_buddy_ids i
+  join public.users u on u.id = i.id;
 
 create or replace function private.remove_buddy_request () returns trigger language plpgsql security definer
 set

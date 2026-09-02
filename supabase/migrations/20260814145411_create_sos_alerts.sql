@@ -1,6 +1,6 @@
 create table public.sos_alerts (
   hangout_id uuid not null references public.hangouts (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
   lat public.lat,
   lon public.lon,
   updated_at timestamptz not null default now(),

@@ -37,9 +37,9 @@ export function PageHeader({
         <IconChevronLeft className="size-5" />
       </Button>
       {title ? (
-        <p className="absolute left-1/2 -translate-x-1/2 text-sm text-muted-foreground">
+        <h2 className="absolute left-1/2 -translate-x-1/2 text-sm text-muted-foreground">
           {title}
-        </p>
+        </h2>
       ) : (
         <Image
           src={logo}

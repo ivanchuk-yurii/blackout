@@ -1,7 +1,7 @@
 create table public.hangouts (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 1 and 100),
-  creator_id uuid not null references auth.users (id) on delete cascade,
+  creator_id uuid not null references public.users (id) on delete cascade,
   timezone text not null,
   started_at timestamptz not null default now(),
   ended_at timestamptz
@@ -9,21 +9,21 @@ create table public.hangouts (
 
 create table public.hangout_members (
   hangout_id uuid not null references public.hangouts (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (hangout_id, user_id)
 );
 
 create table public.hangout_requests (
   hangout_id uuid not null references public.hangouts (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (hangout_id, user_id)
 );
 
 create table public.hangout_invites (
   hangout_id uuid not null references public.hangouts (id) on delete cascade,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references public.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (hangout_id, user_id)
 );
@@ -31,7 +31,7 @@ create table public.hangout_invites (
 create table public.hangout_shares (
   id uuid not null references public.hangouts (id) on delete cascade,
   token varchar not null,
-  expires_at timestamptz not null,
+  expires_at timestamptz not null default (now() + interval '1 day'),
   primary key (id, token)
 );
 
@@ -75,7 +75,31 @@ select private.is_hangout_creator (is_hangout_participant.hangout_id)
            or private.is_hangout_member(is_hangout_participant.hangout_id, auth.uid ());
 $$;
 
-create view public.my_hangouts
+create view public.my_hangout_ids
+with
+  (security_invoker = on) as
+select
+  id
+from
+  public.hangouts h
+where
+  h.creator_id = (
+    select
+      auth.uid ()
+  )
+  or h.id in (
+    select
+      m.hangout_id
+    from
+      public.hangout_members m
+    where
+      m.user_id = (
+        select
+          auth.uid ()
+      )
+  );
+
+create view public.hangouts_feed
 with
   (security_invoker = on) as
 with
@@ -86,7 +110,7 @@ with
     select
       id
     from
-      public.my_buddies
+      public.my_buddy_ids
   )
 select
   h.*
@@ -135,7 +159,7 @@ select
       select
         id
       from
-        public.my_buddies
+        public.my_buddy_ids
     )
   );
 

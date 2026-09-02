@@ -44,7 +44,7 @@ values
     now(),
     now(),
     '{"provider": "email", "providers": ["email"]}',
-    '{"name": "John Doe"}',
+    '{"name": "John Doe", "compliance_accepted_at": "2026-01-01T00:00:00Z"}',
     '',
     '',
     '',
@@ -65,7 +65,49 @@ values
     now(),
     now(),
     '{"provider": "email", "providers": ["email"]}',
-    '{"name": "Jane Doe"}',
+    '{"name": "Jane Doe", "compliance_accepted_at": "2026-01-01T00:00:00Z"}',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '33333333-3333-3333-3333-333333333333',
+    'authenticated',
+    'authenticated',
+    'johndoe+1@example.com',
+    extensions.crypt ('123456', extensions.gen_salt ('bf')),
+    now(),
+    now(),
+    now(),
+    '{"provider": "email", "providers": ["email"]}',
+    '{"name": "John Doe 1", "compliance_accepted_at": "2026-01-01T00:00:00Z"}',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    ''
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
+    '44444444-4444-4444-4444-444444444444',
+    'authenticated',
+    'authenticated',
+    'johndoe+2@example.com',
+    extensions.crypt ('123456', extensions.gen_salt ('bf')),
+    now(),
+    now(),
+    now(),
+    '{"provider": "email", "providers": ["email"]}',
+    '{"name": "John Doe 2", "compliance_accepted_at": "2026-01-01T00:00:00Z"}',
     '',
     '',
     '',
@@ -104,6 +146,24 @@ values
     '{"sub": "22222222-2222-2222-2222-222222222222", "email": "janedoe@example.com", "email_verified": true, "phone_verified": false}',
     now(),
     now()
+  ),
+  (
+    gen_random_uuid(),
+    '33333333-3333-3333-3333-333333333333',
+    '33333333-3333-3333-3333-333333333333',
+    'email',
+    '{"sub": "33333333-3333-3333-3333-333333333333", "email": "johndoe+1@example.com", "email_verified": true, "phone_verified": false}',
+    now(),
+    now()
+  ),
+  (
+    gen_random_uuid(),
+    '44444444-4444-4444-4444-444444444444',
+    '44444444-4444-4444-4444-444444444444',
+    'email',
+    '{"sub": "44444444-4444-4444-4444-444444444444", "email": "johndoe+2@example.com", "email_verified": true, "phone_verified": false}',
+    now(),
+    now()
   );
 
 insert into
@@ -115,10 +175,22 @@ values
   );
 
 insert into
+  public.buddy_requests (user_id, buddy_id)
+values
+  (
+    '11111111-1111-1111-1111-111111111111',
+    '33333333-3333-3333-3333-333333333333'
+  ),
+  (
+    '44444444-4444-4444-4444-444444444444',
+    '11111111-1111-1111-1111-111111111111'
+  );
+
+insert into
   public.hangouts (id, name, creator_id, timezone)
 values
   (
-    '33333333-3333-3333-3333-333333333333',
+    '55555555-5555-5555-5555-555555555555',
     'Night drinks',
     '11111111-1111-1111-1111-111111111111',
     'Europe/London'
@@ -128,6 +200,6 @@ insert into
   public.hangout_members (hangout_id, user_id)
 values
   (
-    '33333333-3333-3333-3333-333333333333',
+    '55555555-5555-5555-5555-555555555555',
     '22222222-2222-2222-2222-222222222222'
   );
