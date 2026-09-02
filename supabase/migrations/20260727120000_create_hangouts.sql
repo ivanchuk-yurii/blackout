@@ -99,44 +99,6 @@ where
       )
   );
 
-create view public.hangouts_feed
-with
-  (security_invoker = on) as
-with
-  visible as (
-    select
-      auth.uid () as id
-    union
-    select
-      id
-    from
-      public.my_buddy_ids
-  )
-select
-  h.*
-from
-  public.hangouts h
-where
-  h.creator_id in (
-    select
-      id
-    from
-      visible
-  )
-  or h.id in (
-    select
-      m.hangout_id
-    from
-      public.hangout_members m
-    where
-      m.user_id in (
-        select
-          id
-        from
-          visible
-      )
-  );
-
 create policy "user reads hangout" on public.hangouts for
 select
   to authenticated using (true);

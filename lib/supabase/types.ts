@@ -763,6 +763,8 @@ export type Database = {
           ended_at: string | null;
           id: string | null;
           name: string | null;
+          spot_image: string | null;
+          spot_name: string | null;
           started_at: string | null;
           timezone: string | null;
         };

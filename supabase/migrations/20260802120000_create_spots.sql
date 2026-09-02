@@ -13,7 +13,26 @@ create table public.spots (
   created_at timestamptz not null default now()
 );
 
-create policy "user manages hangout spots" on public.spots for all to authenticated using (
+create view public.my_spot_ids
+with
+  (security_invoker = on) as
+select
+  s.id
+from
+  public.spots s
+where
+  s.hangout_id in (
+    select
+      id
+    from
+      public.my_hangout_ids
+  );
+
+create policy "participant reads hangout spots" on public.spots for
+select
+  to authenticated using (true);
+
+create policy "creator manages hangout spots" on public.spots for all to authenticated using (
   private.is_hangout_active (hangout_id)
-  and private.is_hangout_participant (hangout_id)
+  and private.is_hangout_creator (hangout_id)
 );
