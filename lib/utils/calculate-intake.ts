@@ -1,5 +1,6 @@
 import { Tables, Enums } from '@/lib/supabase/types';
 import { FullHangoutDrink } from '@/lib/supabase/custom-types';
+import { calculateUnits } from '@/lib/utils/calculate-weekly-drinks';
 
 type DrinkTypeConfig =
   | {
@@ -18,6 +19,12 @@ interface DrinkingWindow {
 export interface IntakePoint {
   time: number;
   rate: number;
+}
+
+export interface IntakeTotals {
+  volume: number;
+  units: number;
+  calories: number;
 }
 
 const DRINK_CONFIG: Record<Enums<'drink_categories'>, DrinkTypeConfig> = {
@@ -62,8 +69,20 @@ function calculateGrams(volume: number, abv: number): number {
   return volume * (abv / 100) * 0.789;
 }
 
+export function calculateTotals(drinks: FullHangoutDrink[]): IntakeTotals {
+  return drinks.reduce<IntakeTotals>(
+    (totals, { volume, drink }) => ({
+      volume: totals.volume + volume,
+      units: totals.units + calculateUnits(volume, drink.abv),
+      calories: totals.calories + (volume / 100) * (drink.calories ?? 0),
+    }),
+    { volume: 0, units: 0, calories: 0 },
+  );
+}
+
 function buildDrinkingWindows(
   hangoutDrinks: FullHangoutDrink[],
+  endedAt: string | null,
 ): DrinkingWindow[] {
   return hangoutDrinks.map((hangoutDrink, i) => {
     const config = DRINK_CONFIG[hangoutDrink.drink.category];
@@ -81,7 +100,9 @@ function buildDrinkingWindows(
           new Date(nextHangoutDrink.created_at).getTime() - start,
           averageDuration,
         )
-      : averageDuration;
+      : endedAt
+        ? Math.min(new Date(endedAt).getTime() - start, averageDuration)
+        : averageDuration;
 
     return {
       start,
@@ -112,16 +133,16 @@ function gramsBetween(
 export function simulateIntake(
   profile: Tables<'user_profiles'> | null,
   drinks: FullHangoutDrink[],
+  endedAt: string | null,
 ): IntakePoint[] {
   if (drinks.length === 0) return [];
 
   const tbw = profile ? calculateTBW(profile) : 40;
-  const windows = buildDrinkingWindows(drinks);
+  const windows = buildDrinkingWindows(drinks, endedAt);
 
   const stepMs = STEP_MIN * 60_000;
-  // TODO account hangout end
   const start = Math.min(...windows.map((window) => window.start));
-  const end = Math.max(...windows.map((window) => window.end), Date.now());
+  const end = Math.max(...windows.map((window) => window.end));
 
   const points: IntakePoint[] = [];
   let t = start;

@@ -1,37 +1,43 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { IconCameraFilled } from '@tabler/icons-react';
+import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/client';
+import { type Photo } from '@/lib/supabase/custom-types';
+import { toast } from '@/components/ui/toast';
+import { Overlay, OverlayClose } from '@/components/common/overlay';
 
-type Photo = { path: string; url: string };
+const COUNTDOWN = 3;
 
 export function Camera({
   hangoutId,
-  canAdd,
-  initialPhotos,
+  onAdd,
 }: {
   hangoutId: string;
-  canAdd: boolean;
-  initialPhotos: Photo[];
+  onAdd: (photo: Photo) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [photos, setPhotos] = useState(initialPhotos);
+  const [count, setCount] = useState(COUNTDOWN);
+  const [shot, setShot] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   function openCamera() {
-    setError(null);
     setReady(false);
+    setCount(COUNTDOWN);
+    setShot(null);
     setOpen(true);
   }
 
-  // Acquire the front camera only while the view is open, and always release
-  // the tracks on close/unmount so the camera indicator turns off.
+  function closeCamera() {
+    if (shot) URL.revokeObjectURL(shot);
+    setShot(null);
+    setOpen(false);
+  }
+
   useEffect(() => {
     if (!open) return;
 
@@ -40,7 +46,11 @@ export function Camera({
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -55,11 +65,13 @@ export function Camera({
         setReady(true);
       } catch (cause) {
         if (cancelled) return;
-        setError(
-          cause instanceof DOMException && cause.name === 'NotAllowedError'
-            ? 'Camera permission denied.'
-            : 'Could not open the camera.',
-        );
+        toast.add({
+          type: 'error',
+          title:
+            cause instanceof DOMException && cause.name === 'NotAllowedError'
+              ? 'Camera permission denied.'
+              : 'Could not open the camera.',
+        });
       }
     })();
 
@@ -70,102 +82,113 @@ export function Camera({
     };
   }, [open]);
 
-  async function handleCapture() {
+  const capture = useCallback(async () => {
     const video = videoRef.current;
     if (!video) return;
 
-    setPending(true);
-    setError(null);
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d')!.drawImage(video, 0, 0);
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, 'image/jpeg', 0.9),
-      );
-      if (!blob) throw new Error('Could not capture the photo.');
+    const context = canvas.getContext('2d')!;
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0);
 
-      // First path segment must be the hangout id — the storage RLS policy
-      // checks it via private.is_hangout_participant.
-      const path = `${hangoutId}/${crypto.randomUUID()}.jpg`;
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.9),
+    );
 
-      const supabase = createClient();
-      const { error: uploadError } = await supabase.storage
-        .from('hangout-photos')
-        .upload(path, blob, { contentType: 'image/jpeg' });
-      if (uploadError) throw uploadError;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
 
-      // Private bucket: mint a short-lived URL to show the result.
-      const { data, error: urlError } = await supabase.storage
-        .from('hangout-photos')
-        .createSignedUrl(path, 60 * 60);
-      if (urlError) throw urlError;
-
-      setPhotos((current) => [{ path, url: data.signedUrl }, ...current]);
-      setOpen(false);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Upload failed.');
-    } finally {
-      setPending(false);
+    if (!blob) {
+      toast.add({ type: 'error', title: 'Could not capture the photo.' });
+      return;
     }
-  }
 
-  async function handleDelete(path: string) {
-    setError(null);
-    setDeleting(path);
-    try {
-      const supabase = createClient();
-      const { error: removeError } = await supabase.storage
-        .from('hangout-photos')
-        .remove([path]);
-      if (removeError) throw removeError;
+    setShot(URL.createObjectURL(blob));
 
-      setPhotos((current) => current.filter((photo) => photo.path !== path));
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not delete.');
-    } finally {
-      setDeleting(null);
+    const path = `${hangoutId}/${nanoid()}.jpg`;
+
+    const supabase = createClient();
+    const { error: uploadError } = await supabase.storage
+      .from('hangout-photos')
+      .upload(path, blob, { contentType: 'image/jpeg' });
+    if (uploadError) {
+      toast.add({ type: 'error', title: uploadError.message });
+      return;
     }
-  }
+
+    const { data: signed } = await supabase.storage
+      .from('hangout-photos')
+      .createSignedUrl(path, 60 * 60);
+    if (signed?.signedUrl) onAdd({ path, url: signed.signedUrl });
+  }, [hangoutId, onAdd]);
+
+  useEffect(() => {
+    if (!ready) return;
+
+    let remaining = COUNTDOWN;
+
+    const timer = setInterval(() => {
+      remaining -= 1;
+      setCount(remaining);
+
+      if (remaining === 0) {
+        clearInterval(timer);
+        capture();
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [ready, capture]);
 
   return (
-    <section>
-      <h2>Photos</h2>
+    <>
+      <div className="pointer-events-none fixed right-[max(0rem,calc(50vw_-_250px))] bottom-[86px] z-40 size-[176px] overflow-hidden">
+        <button
+          type="button"
+          onClick={openCamera}
+          aria-label="Take a photo"
+          className="flex pointer-events-auto absolute p-2 top-[18px] right-[-118px] size-[140px] rotate-[-18deg] rounded-[14px] bg-[#494949] shadow-[0_4px_16px_0_rgba(0,0,0,0.5)] outline-none"
+        >
+          <IconCameraFilled className="size-[19px] text-white opacity-50" />
+        </button>
+      </div>
 
-      {error && <p role="alert">{error}</p>}
-
-      <ul>
-        {photos.map((photo) => (
-          <li key={photo.path}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.url} alt="Hangout photo" width={80} height={80} />
-            <button
-              onClick={() => handleDelete(photo.path)}
-              disabled={deleting === photo.path}
-            >
-              {deleting === photo.path ? 'Deleting…' : 'Delete'}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {canAdd &&
-        (open ? (
-          <div>
-            {/* playsInline + muted are required for inline preview on iOS. */}
-            <video ref={videoRef} playsInline muted autoPlay />
-            <button onClick={handleCapture} disabled={!ready || pending}>
-              {pending ? 'Uploading…' : 'Take photo'}
-            </button>
-            <button onClick={() => setOpen(false)} disabled={pending}>
-              Cancel
-            </button>
-          </div>
+      <Overlay
+        open={open}
+        onOpenChange={(next) => (next ? setOpen(true) : closeCamera())}
+      >
+        {shot ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={shot}
+            alt="Photo just taken"
+            className="size-full object-cover"
+          />
         ) : (
-          <button onClick={openCamera}>Open camera</button>
-        ))}
-    </section>
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            autoPlay
+            className="size-full -scale-x-100 object-cover"
+          />
+        )}
+
+        {!shot && ready && count > 0 && (
+          <span
+            key={count}
+            className="absolute inset-0 flex animate-in items-center justify-center text-[128px] leading-none font-semibold text-white tabular-nums drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)] zoom-in-50"
+          >
+            {count}
+          </span>
+        )}
+
+        <OverlayClose className="absolute top-3 right-3" />
+      </Overlay>
+    </>
   );
 }

@@ -16,7 +16,7 @@ export function UserAvatar({
   name,
   avatar,
   className,
-}: Tables<'users'> & {
+}: Pick<Tables<'users'>, 'name' | 'avatar'> & {
   className?: string;
 }) {
   return (

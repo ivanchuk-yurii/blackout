@@ -1,58 +1,84 @@
 'use client';
 
 import { useState } from 'react';
+import { IconPencil, IconRepeat, IconTrash } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
-import { Constants, type Tables } from '@/lib/supabase/types';
-import { FullHangoutDrink } from '@/lib/supabase/custom-types';
-import { Stats } from './stats';
+import {
+  DRINK_CATEGORY_EMOJIS,
+  type FullHangoutDrink,
+} from '@/lib/supabase/custom-types';
+import { Button } from '@/components/ui/button';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { toast } from '@/components/ui/toast';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { VolumeSlider, VOLUME_RANGES } from '@/components/common/volume-slider';
+
+const TIME = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
+function toTimeValue(iso: string) {
+  const date = new Date(iso);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function withTimeValue(time: string) {
+  const [hours, minutes] = time.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  if (date > new Date()) date.setDate(date.getDate() - 1);
+  return date.toISOString();
+}
 
 export function Drinks({
   hangoutId,
   userId,
-  canAdd,
-  profile,
-  drinks: initialDrinkList,
-  hangoutDrinks: initialDrinks,
+  startedAt,
+  endedAt,
+  drinkLogs,
+  onAdd,
+  onRemove,
+  onUpdate,
 }: {
   hangoutId: string;
   userId: string;
-  canAdd: boolean;
-  profile: Tables<'user_profiles'> | null;
-  drinks: Tables<'drinks'>[];
-  hangoutDrinks: FullHangoutDrink[];
+  startedAt: string;
+  endedAt: string | null;
+  drinkLogs: FullHangoutDrink[];
+  onAdd: (log: FullHangoutDrink) => void;
+  onRemove: (logId: string) => void;
+  onUpdate: (log: FullHangoutDrink) => void;
 }) {
-  const [drinks, setDrinks] = useState(initialDrinkList);
-  const [drinkLogs, setDrinkLogs] = useState(initialDrinks);
-  const [drinkId, setDrinkId] = useState('');
-  const [volume, setVolume] = useState('');
-  const [showDrinkForm, setShowDrinkForm] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newCategory, setNewCategory] = useState<
-    Tables<'drinks'>['category'] | ''
-  >('');
-  const [newAbv, setNewAbv] = useState('');
-  const [newCalories, setNewCalories] = useState('');
+  const [editing, setEditing] = useState<FullHangoutDrink | null>(null);
+  const [volume, setVolume] = useState(0);
+  const [time, setTime] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
 
-  const drinkName = (id: string) =>
-    drinks.find((drink) => drink.id === id)?.name ?? id;
-
-  const drinksByCategory = drinks.reduce<Record<string, typeof drinks>>(
-    (groups, drink) => {
-      (groups[drink.category] ??= []).push(drink);
-      return groups;
-    },
-    {},
-  );
-
-  const selectedDrink = drinks.find((drink) => drink.id === drinkId);
-
-  async function handleAddDrink() {
-    if (!drinkId || !volume) return;
-
-    setPending(true);
+  function openEditDrink(log: FullHangoutDrink) {
     setError(null);
+    setVolume(log.volume);
+    setTime(toTimeValue(log.created_at));
+    setEditing(log);
+  }
+
+  async function handleRepeatDrink(log: FullHangoutDrink) {
+    setPending(log.id);
 
     const supabase = createClient();
     const { data, error } = await supabase
@@ -60,197 +86,189 @@ export function Drinks({
       .insert({
         hangout_id: hangoutId,
         user_id: userId,
-        drink_id: drinkId,
-        volume: Number(volume),
+        drink_id: log.drink_id,
+        volume: log.volume,
       })
       .select('*, drink:drinks(*)')
       .single();
-    setPending(false);
+    setPending(null);
     if (error) {
-      setError(error.message);
+      toast.add({ type: 'error', title: error.message });
       return;
     }
-    setDrinkLogs((current) => [...current, data]);
-    setDrinkId('');
-    setVolume('');
-  }
-
-  async function handleCreateDrink() {
-    if (!newName || !newCategory || !newAbv) return;
-
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('drinks')
-      .insert({
-        name: newName,
-        category: newCategory,
-        abv: Number(newAbv),
-        calories: newCalories ? Number(newCalories) : null,
-        user_id: userId,
-      })
-      .select()
-      .single();
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setDrinks((current) => [...current, data]);
-    setDrinkId(data.id);
-    setVolume(data.volume != null ? String(data.volume) : '');
-    setNewName('');
-    setNewCategory('');
-    setNewAbv('');
-    setNewCalories('');
-    setShowDrinkForm(false);
+    onAdd(data);
   }
 
   async function handleRemoveDrink(logId: string) {
-    setPending(true);
-    setError(null);
+    setPending(logId);
 
     const supabase = createClient();
     const { error } = await supabase
       .from('hangout_drinks')
       .delete()
       .eq('id', logId);
-    setPending(false);
+    setPending(null);
+    if (error) {
+      toast.add({ type: 'error', title: error.message });
+      return;
+    }
+    onRemove(logId);
+  }
+
+  async function handleEditDrink() {
+    if (!editing || !time) return;
+
+    const createdAt = withTimeValue(time);
+
+    if (new Date(createdAt) < new Date(startedAt)) {
+      setError(
+        `Should be after ${TIME.format(new Date(startedAt))} hangout start.`,
+      );
+      return;
+    }
+
+    setPending(editing.id);
+    setError(null);
+
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('hangout_drinks')
+      .update({ volume, created_at: createdAt })
+      .eq('id', editing.id)
+      .select('*, drink:drinks(*)')
+      .single();
+    setPending(null);
     if (error) {
       setError(error.message);
       return;
     }
-    setDrinkLogs((current) => current.filter((log) => log.id !== logId));
+    onUpdate(data);
+    setEditing(null);
   }
 
   return (
     <>
-      {error && <p role="alert">{error}</p>}
-
-      {canAdd && (
-        <div>
-          <select
-            value={drinkId}
-            onChange={(event) => {
-              const drink = drinks.find((d) => d.id === event.target.value);
-              setDrinkId(event.target.value);
-              setVolume(drink?.volume != null ? String(drink.volume) : '');
-            }}
-          >
-            <option value="" disabled>
-              Select a drink…
-            </option>
-            {Object.entries(drinksByCategory).map(([category, items]) => (
-              <optgroup key={category} label={category}>
-                {items.map((drink) => (
-                  <option key={drink.id} value={drink.id}>
-                    {drink.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {selectedDrink && (
-            <p>
-              {selectedDrink.abv}% ABV · {selectedDrink.calories ?? '—'}{' '}
-              kcal/100ml
-            </p>
-          )}
-          <input
-            type="number"
-            min="0"
-            max="10000"
-            value={volume}
-            onChange={(event) => setVolume(event.target.value)}
-            placeholder="Volume (ml)"
-            disabled={selectedDrink?.volume != null}
-          />
-          <button
-            onClick={handleAddDrink}
-            disabled={pending || !drinkId || !volume}
-          >
-            Add
-          </button>
-        </div>
-      )}
-
-      {canAdd && (
-        <div>
-          <button
-            onClick={() => setShowDrinkForm((show) => !show)}
-            disabled={pending}
-          >
-            {showDrinkForm ? 'Cancel' : 'Add custom drink'}
-          </button>
-          {showDrinkForm && (
-            <div>
-              <input
-                value={newName}
-                onChange={(event) => setNewName(event.target.value)}
-                placeholder="Name"
-              />
-              <select
-                value={newCategory}
-                onChange={(event) =>
-                  setNewCategory(
-                    event.target.value as Tables<'drinks'>['category'],
-                  )
-                }
-              >
-                <option value="" disabled>
-                  Select a category…
-                </option>
-                {Constants.public.Enums.drink_categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={newAbv}
-                onChange={(event) => setNewAbv(event.target.value)}
-                placeholder="ABV (%)"
-              />
-              <input
-                type="number"
-                min="0"
-                max="1000"
-                value={newCalories}
-                onChange={(event) => setNewCalories(event.target.value)}
-                placeholder="Calories per 100ml (optional)"
-              />
-              <button
-                onClick={handleCreateDrink}
-                disabled={pending || !newName || !newCategory || !newAbv}
-              >
-                Save
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <Stats hangoutDrinks={drinkLogs} profile={profile} />
-
-      <ul>
+      <ul className="-mx-2 py-2 pr-8">
         {drinkLogs.map((log) => (
           <li key={log.id}>
-            {drinkName(log.drink_id)}: {log.volume} ml
-            <button
-              onClick={() => handleRemoveDrink(log.id)}
-              disabled={pending}
-            >
-              Remove
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={!!endedAt || pending !== null}
+                aria-label={`Actions for ${log.drink.name}`}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left outline-none hover:bg-accent focus-visible:bg-accent data-popup-open:bg-accent"
+              >
+                <span aria-hidden className="shrink-0 text-xl/none">
+                  {DRINK_CATEGORY_EMOJIS[log.drink.category]}
+                </span>
+
+                <span className="min-w-0 truncate text-sm font-medium">
+                  {log.drink.name}
+                </span>
+
+                <span className="shrink-0 flex-1 text-xs text-muted-foreground tabular-nums">
+                  {log.volume} ml
+                </span>
+
+                <time
+                  dateTime={log.created_at}
+                  className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                >
+                  {TIME.format(new Date(log.created_at))}
+                </time>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => handleRepeatDrink(log)}>
+                  <IconRepeat />
+                  Repeat
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openEditDrink(log)}>
+                  <IconPencil />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => handleRemoveDrink(log.id)}
+                >
+                  <IconTrash />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </li>
         ))}
       </ul>
+
+      <Drawer
+        open={editing !== null}
+        onOpenChange={(open) => !open && setEditing(null)}
+        showSwipeHandle
+      >
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Edit drink</DrawerTitle>
+          </DrawerHeader>
+
+          {editing && (
+            <>
+              <div className="flex items-center gap-3 px-4 pt-4">
+                <span aria-hidden className="shrink-0 text-2xl/none">
+                  {DRINK_CATEGORY_EMOJIS[editing.drink.category]}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {editing.drink.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    <span className="capitalize">{editing.drink.category}</span>{' '}
+                    · {editing.drink.abv}% ABV
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-4 pt-4">
+                <Field>
+                  <FieldLabel htmlFor="drink-time">Time</FieldLabel>
+                  <Input
+                    id="drink-time"
+                    type="time"
+                    value={time}
+                    onChange={(event) => setTime(event.target.value)}
+                    disabled={pending !== null}
+                    className="appearance-none [&::-webkit-date-and-time-value]:mx-0 [&::-webkit-date-and-time-value]:min-w-0 [&::-webkit-date-and-time-value]:text-left"
+                  />
+                </Field>
+              </div>
+
+              <DrawerFooter
+                data-base-ui-swipe-ignore
+                className="gap-0 pt-4 pb-6"
+              >
+                <VolumeSlider
+                  category={editing.drink.category}
+                  value={volume}
+                  onValueChange={setVolume}
+                  min={VOLUME_RANGES[editing.drink.category].min}
+                  max={VOLUME_RANGES[editing.drink.category].max}
+                  disabled={pending !== null}
+                />
+
+                <FieldError>{error}</FieldError>
+
+                <Button
+                  size="lg"
+                  className="mt-2"
+                  onClick={handleEditDrink}
+                  disabled={pending !== null || !time}
+                >
+                  Save
+                </Button>
+              </DrawerFooter>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
     </>
   );
 }

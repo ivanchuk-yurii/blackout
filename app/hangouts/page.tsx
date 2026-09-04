@@ -7,7 +7,7 @@ export default async function HangoutsPage() {
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) return null;
 
-  const { data: hangouts } = await supabase.from('my_hangouts').select();
+  const { data: hangouts } = await supabase.from('hangouts_feed').select();
 
   return (
     <main>

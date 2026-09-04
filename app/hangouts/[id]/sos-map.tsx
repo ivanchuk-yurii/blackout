@@ -27,7 +27,9 @@ export function SosMap({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef(new Map<string, google.maps.Marker>());
+  const markersRef = useRef(
+    new Map<string, google.maps.marker.AdvancedMarkerElement>(),
+  );
 
   const others = useMemo(
     () => alerts.filter((alert) => alert.user_id !== userId),
@@ -84,6 +86,7 @@ export function SosMap({
     mapRef.current ??= new google.maps.Map(containerRef.current, {
       center: { lat: located[0].lat, lng: located[0].lon },
       zoom: 16,
+      mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID!,
       colorScheme: google.maps.ColorScheme.DARK,
       disableDefaultUI: true,
       zoomControl: true,
@@ -94,18 +97,22 @@ export function SosMap({
       const position = { lat: alert.lat, lng: alert.lon };
       const marker = markers.get(alert.user_id);
       if (marker) {
-        marker.setPosition(position);
+        marker.position = position;
       } else {
         markers.set(
           alert.user_id,
-          new google.maps.Marker({ map, position, title: alert.user_id }),
+          new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position,
+            title: alert.user_id,
+          }),
         );
       }
     }
 
     for (const [id, marker] of markers) {
       if (located.some((alert) => alert.user_id === id)) continue;
-      marker.setMap(null);
+      marker.map = null;
       markers.delete(id);
     }
   }, [ready, located]);

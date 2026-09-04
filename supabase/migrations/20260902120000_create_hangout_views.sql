@@ -50,3 +50,20 @@ where
           visible
       )
   );
+
+create or replace view public.hangout_leaderboard
+with
+  (security_invoker = on) as
+select
+  hd.hangout_id,
+  u.*,
+  jsonb_agg(
+    jsonb_build_object('id', d.id, 'volume', hd.volume, 'abv', d.abv)
+  ) as drinks
+from
+  public.hangout_drinks hd
+  join public.drinks d on d.id = hd.drink_id
+  join public.users u on u.id = hd.user_id
+group by
+  hd.hangout_id,
+  u.id;

@@ -37,9 +37,9 @@ group by
 order by
   count desc;
 
-create policy "read global drinks" on public.drinks for
+create policy "user reads drinks" on public.drinks for
 select
-  to authenticated using (user_id is null);
+  to authenticated using (true);
 
 create policy "user manages own drinks" on public.drinks for all to authenticated using (
   (

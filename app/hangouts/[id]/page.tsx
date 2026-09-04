@@ -1,12 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createServiceClient } from '@/lib/supabase/service';
+import { type HangoutLeaderboardEntry } from '@/lib/supabase/custom-types';
 import { Hangout } from './hangout';
-import { Drinks } from './drinks';
-import { Spots } from './spots';
-import { SosMap } from './sos-map';
-import { Camera } from './camera';
-import { Share } from './share';
-import { End } from './end';
 import { HangoutState } from './state';
 
 export default async function HangoutPage({
@@ -20,57 +14,68 @@ export default async function HangoutPage({
   const { token } = await searchParams;
 
   const supabase = await createClient();
-  const supabaseService = await createServiceClient();
 
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) return null;
   const userId = auth.claims.sub;
 
-  const { data: hangout } = await supabase
-    .from('hangouts')
-    .select()
-    .eq('id', id)
-    .maybeSingle();
+  const [
+    { data: hangout },
+    { data: profile },
+    { data: members },
+    { data: drinks },
+    { data: hangoutDrinks },
+    { data: files },
+    { data: lastSpot },
+  ] = await Promise.all([
+    supabase
+      .from('hangouts')
+      .select('*, creator:users!hangouts_creator_id_fkey(*)')
+      .eq('id', id)
+      .maybeSingle(),
+    supabase.from('user_profiles').select().eq('id', userId).maybeSingle(),
+    supabase
+      .from('hangout_members')
+      .select('user:users!inner(*)')
+      .eq('hangout_id', id),
+    supabase
+      .from('drinks')
+      .select()
+      .or(`user_id.is.null,user_id.eq.${userId}`)
+      .order('name'),
+    supabase
+      .from('hangout_drinks')
+      .select('*, drink:drinks(*)')
+      .eq('hangout_id', id)
+      .eq('user_id', userId)
+      .order('created_at'),
+    supabase.storage
+      .from('hangout-photos')
+      .list(id, { limit: 5, sortBy: { column: 'created_at', order: 'desc' } }),
+    supabase
+      .from('spots')
+      .select('name, lat, lon')
+      .eq('hangout_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (!hangout) return null;
 
   const isCreator = hangout.creator_id === userId;
+  const isEnded = !!hangout.ended_at;
 
-  const { data: creator } = await supabaseService.auth.admin.getUserById(
-    hangout.creator_id,
-  );
+  const participants = [
+    hangout.creator,
+    ...(members ?? []).map((member) => member.user),
+  ];
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select()
-    .eq('id', userId)
-    .maybeSingle();
-
-  const { data: members } = await supabase
-    .from('hangout_members')
-    .select()
-    .eq('hangout_id', id);
-
-  const { data: drinks } = await supabase
-    .from('drinks')
-    .select()
-    .order('category')
-    .order('name');
-
-  const { data: hangoutDrinks } = await supabase
-    .from('hangout_drinks')
-    .select('*, drink:drinks(*)')
-    .eq('hangout_id', id)
-    .eq('user_id', userId)
-    .order('created_at');
-
-  const { data: spots } = await supabase
-    .from('spots')
-    .select()
-    .eq('hangout_id', id)
-    .order('created_at');
+  const paths = (files ?? []).map((file) => `${id}/${file.name}`);
 
   async function getState(): Promise<HangoutState> {
+    if (isCreator) return HangoutState.Creator;
+
     const { data: invited } = await supabase
       .from('hangout_invites')
       .select()
@@ -98,82 +103,51 @@ export default async function HangoutPage({
     return HangoutState.Initial;
   }
 
-  const state = isCreator ? HangoutState.Initial : await getState();
-  const isParticipant = isCreator || state === HangoutState.Member;
+  const [{ data: signed }, state, { data: leaderboard }, { data: spots }] =
+    await Promise.all([
+      paths.length
+        ? supabase.storage
+            .from('hangout-photos')
+            .createSignedUrls(paths, 60 * 60)
+        : { data: [] },
+      getState(),
+      isEnded
+        ? supabase
+            .from('hangout_leaderboard')
+            .select()
+            .eq('hangout_id', id)
+            .overrideTypes<HangoutLeaderboardEntry[], { merge: false }>()
+        : { data: [] },
+      isEnded
+        ? supabase
+            .from('spots')
+            .select('name, lat, lon')
+            .eq('hangout_id', id)
+            .order('created_at')
+        : { data: [] },
+    ]);
 
-  const buddies = isCreator
-    ? ((await supabase.from('my_buddies').select()).data ?? [])
-    : [];
-
-  const sosAlerts = isParticipant
-    ? ((await supabase.from('sos_alerts').select().eq('hangout_id', id)).data ??
-      [])
-    : [];
-
-  let photos: { path: string; url: string }[] = [];
-  if (isParticipant) {
-    const { data: files } = await supabase.storage
-      .from('hangout-photos')
-      .list(id);
-    const paths = (files ?? [])
-      .filter((file) => file.id !== null)
-      .map((file) => `${id}/${file.name}`);
-    if (paths.length) {
-      const { data: signed } = await supabase.storage
-        .from('hangout-photos')
-        .createSignedUrls(paths, 60 * 60);
-      photos = (signed ?? [])
-        .filter((entry) => !entry.error && entry.signedUrl && entry.path)
-        .map((entry) => ({ path: entry.path!, url: entry.signedUrl! }));
-    }
-  }
+  const photos = (signed ?? [])
+    .filter((entry) => !entry.error && entry.signedUrl && entry.path)
+    .map((entry) => ({ path: entry.path!, url: entry.signedUrl! }));
 
   return (
-    <main>
-      <h1>{hangout.name}</h1>
-      {hangout.ended_at && <p>Ended</p>}
-
-      <section>
-        <h2>Creator</h2>
-        <p>{creator.user?.user_metadata.name}</p>
-      </section>
-
-      <Hangout
-        hangoutId={id}
-        userId={userId}
-        isCreator={isCreator}
-        initialState={state}
-        inSos={sosAlerts.some((alert) => alert.user_id === userId)}
-        buddies={buddies as { id: string }[]}
-        members={members ?? []}
-        token={token}
-      />
-
-      <SosMap hangoutId={id} userId={userId} alerts={sosAlerts} />
-
-      <Drinks
-        hangoutId={id}
-        userId={userId}
-        canAdd={isParticipant && !hangout.ended_at}
-        profile={profile}
-        drinks={drinks ?? []}
-        hangoutDrinks={hangoutDrinks ?? []}
-      />
-
-      <Spots
-        hangoutId={id}
-        canAdd={isParticipant && !hangout.ended_at}
-        spots={spots ?? []}
-      />
-
-      <Camera
-        hangoutId={id}
-        canAdd={isParticipant && !hangout.ended_at}
-        initialPhotos={photos}
-      />
-
-      {isCreator && !hangout.ended_at && <Share hangoutId={id} />}
-      {isCreator && !hangout.ended_at && <End hangoutId={id} />}
-    </main>
+    <Hangout
+      hangoutId={id}
+      userId={userId}
+      name={hangout.name}
+      startedAt={hangout.started_at}
+      endedAt={hangout.ended_at}
+      state={state}
+      members={participants}
+      photos={photos}
+      spots={spots ?? []}
+      lastSpot={lastSpot}
+      profile={profile}
+      drinks={drinks ?? []}
+      hangoutDrinks={hangoutDrinks ?? []}
+      leaderboard={leaderboard ?? []}
+      token={token}
+    />
   );
 }

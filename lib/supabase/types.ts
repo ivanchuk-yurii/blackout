@@ -55,6 +55,13 @@ export type Database = {
             foreignKeyName: 'buddies_buddy_id_fkey';
             columns: ['buddy_id'];
             isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'buddies_buddy_id_fkey';
+            columns: ['buddy_id'];
+            isOneToOne: false;
             referencedRelation: 'my_buddies';
             referencedColumns: ['id'];
           },
@@ -63,6 +70,13 @@ export type Database = {
             columns: ['buddy_id'];
             isOneToOne: false;
             referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'buddies_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
             referencedColumns: ['id'];
           },
           {
@@ -102,6 +116,13 @@ export type Database = {
             foreignKeyName: 'buddy_requests_buddy_id_fkey';
             columns: ['buddy_id'];
             isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'buddy_requests_buddy_id_fkey';
+            columns: ['buddy_id'];
+            isOneToOne: false;
             referencedRelation: 'my_buddies';
             referencedColumns: ['id'];
           },
@@ -110,6 +131,13 @@ export type Database = {
             columns: ['buddy_id'];
             isOneToOne: false;
             referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'buddy_requests_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
             referencedColumns: ['id'];
           },
           {
@@ -145,6 +173,13 @@ export type Database = {
           token?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'buddy_shares_id_fkey';
+            columns: ['id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'buddy_shares_id_fkey';
             columns: ['id'];
@@ -190,6 +225,13 @@ export type Database = {
           volume?: number | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'drinks_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'drinks_user_id_fkey';
             columns: ['user_id'];
@@ -264,6 +306,13 @@ export type Database = {
             foreignKeyName: 'hangout_drinks_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
             referencedRelation: 'my_buddies';
             referencedColumns: ['id'];
           },
@@ -312,6 +361,13 @@ export type Database = {
             columns: ['hangout_id'];
             isOneToOne: false;
             referencedRelation: 'my_hangout_ids';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_invites_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
             referencedColumns: ['id'];
           },
           {
@@ -372,6 +428,13 @@ export type Database = {
             foreignKeyName: 'hangout_members_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_members_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
             referencedRelation: 'my_buddies';
             referencedColumns: ['id'];
           },
@@ -420,6 +483,13 @@ export type Database = {
             columns: ['hangout_id'];
             isOneToOne: false;
             referencedRelation: 'my_hangout_ids';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_requests_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
             referencedColumns: ['id'];
           },
           {
@@ -508,6 +578,13 @@ export type Database = {
             foreignKeyName: 'hangouts_creator_id_fkey';
             columns: ['creator_id'];
             isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangouts_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
             referencedRelation: 'my_buddies';
             referencedColumns: ['id'];
           },
@@ -549,6 +626,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'notifications_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'notifications_user_id_fkey';
             columns: ['user_id'];
@@ -607,6 +691,13 @@ export type Database = {
             columns: ['hangout_id'];
             isOneToOne: false;
             referencedRelation: 'my_hangout_ids';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'sos_alerts_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
             referencedColumns: ['id'];
           },
           {
@@ -707,6 +798,13 @@ export type Database = {
             foreignKeyName: 'user_profiles_id_fkey';
             columns: ['id'];
             isOneToOne: true;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_profiles_id_fkey';
+            columns: ['id'];
+            isOneToOne: true;
             referencedRelation: 'my_buddies';
             referencedColumns: ['id'];
           },
@@ -757,6 +855,39 @@ export type Database = {
           },
         ];
       };
+      hangout_leaderboard: {
+        Row: {
+          avatar: string | null;
+          drinks: Json | null;
+          hangout_id: string | null;
+          id: string | null;
+          name: string | null;
+          status: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_drinks_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts_feed';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_hangout_ids';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       hangouts_feed: {
         Row: {
           creator_id: string | null;
@@ -769,6 +900,13 @@ export type Database = {
           timezone: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'hangouts_creator_id_fkey';
+            columns: ['creator_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'hangouts_creator_id_fkey';
             columns: ['creator_id'];

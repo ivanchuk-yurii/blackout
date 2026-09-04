@@ -3,4 +3,5 @@ export enum HangoutState {
   Requested = 'requested',
   Invited = 'invited',
   Member = 'member',
+  Creator = 'creator',
 }

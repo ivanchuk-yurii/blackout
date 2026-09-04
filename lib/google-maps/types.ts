@@ -5,6 +5,8 @@ export type SpotPlace = Pick<Tables<'spots'>, 'lat' | 'lon' | 'image'>;
 export interface SpotOption {
   id: string;
   label: string;
+  emoji: string;
+  address?: string;
   place?: SpotPlace;
   distance?: number;
 }
@@ -27,15 +29,24 @@ export interface Place {
   displayName: Text;
   location: LatLng;
   photos?: Photo[];
+  primaryType?: string;
+  shortFormattedAddress?: string;
 }
 
 export interface SearchNearbyResponse {
   places?: Place[];
 }
 
+export interface StructuredFormat {
+  mainText: Text;
+  secondaryText?: Text;
+}
+
 export interface PlacePrediction {
   placeId: string;
   text: Text;
+  structuredFormat?: StructuredFormat;
+  types?: string[];
   distanceMeters?: number;
 }
 
@@ -45,4 +56,17 @@ export interface Suggestion {
 
 export interface AutocompletePlacesResponse {
   suggestions?: Suggestion[];
+}
+
+export interface RoutePolyline {
+  encodedPolyline: string;
+}
+
+export interface ComputedRoute {
+  polyline?: RoutePolyline;
+  distanceMeters?: number;
+}
+
+export interface ComputeRoutesResponse {
+  routes?: ComputedRoute[];
 }

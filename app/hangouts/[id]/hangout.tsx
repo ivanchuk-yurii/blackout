@@ -1,354 +1,238 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { IconChevronLeft } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
+import { type Tables } from '@/lib/supabase/types';
 import { HangoutState } from '@/app/hangouts/[id]/state';
-
-const SOS_INTERVAL = 5_000;
+import { distanceBetween } from '@/lib/google-maps/utils';
+import { Button } from '@/components/ui/button';
+import { EditInput } from '@/components/common/edit-input';
+import {
+  type FullHangoutDrink,
+  type HangoutLeaderboardEntry,
+  type Photo,
+  type Point,
+} from '@/lib/supabase/custom-types';
+import { Members } from './members';
+import { Camera } from './camera';
+import { Photos } from './photos';
+import { Overlay } from '@/components/common/overlay';
+import { Action } from './action';
+import { SetSpot } from './set-spot';
+import { SelectSpot, type Spot } from './select-spot';
+import { AddDrink } from './add-drink';
+import { Drinks } from './drinks';
+import { Leaderboard } from './leaderboard';
+import { SpotHistory } from './spot-history';
+import { StatsChart } from './stats-chart';
 
 export function Hangout({
   hangoutId,
   userId,
-  isCreator,
-  initialState,
-  inSos: initialInSos,
-  buddies,
-  members: initialMembers,
+  state,
+  name,
+  startedAt,
+  endedAt,
+  members,
+  photos: initialPhotos,
+  spots,
+  lastSpot: initialLastSpot,
+  profile,
+  drinks: initialDrinks,
+  hangoutDrinks: initialHangoutDrinks,
+  leaderboard,
   token,
 }: {
   hangoutId: string;
   userId: string;
-  isCreator: boolean;
-  initialState: HangoutState;
-  inSos: boolean;
-  buddies: { id: string }[];
-  members: { user_id: string }[];
+  name: string;
+  startedAt: string;
+  endedAt: string | null;
+  state: HangoutState;
+  members: Tables<'users'>[];
+  photos: Photo[];
+  spots: Spot[];
+  lastSpot: Spot | null;
+  profile: Tables<'user_profiles'> | null;
+  drinks: Tables<'drinks'>[];
+  hangoutDrinks: FullHangoutDrink[];
+  leaderboard: HangoutLeaderboardEntry[];
   token?: string;
 }) {
-  const [state, setState] = useState<HangoutState>(initialState);
-  const [members, setMembers] = useState(initialMembers);
-  const [buddyId, setBuddyId] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const [inSos, setInSos] = useState(initialInSos);
+  const router = useRouter();
+  const [lastSpot, setLastSpot] = useState(initialLastSpot);
+  const [spotOpen, setSpotOpen] = useState(false);
+  const [here, setHere] = useState<Point | null>(null);
+  const [photos, setPhotos] = useState(initialPhotos);
+  const [drinks, setDrinks] = useState(initialDrinks);
+  const [drinkLogs, setDrinkLogs] = useState(initialHangoutDrinks);
 
-  const watchRef = useRef<number | null>(null);
-  const updatedAtRef = useRef(0);
+  const isParticipant =
+    state === HangoutState.Member || state === HangoutState.Creator;
+  const isActive = !endedAt;
 
-  useEffect(() => {
-    if (!inSos) return;
-
-    watchRef.current = navigator.geolocation?.watchPosition(
-      (position) => {
-        if (position.timestamp - updatedAtRef.current < SOS_INTERVAL) return;
-
-        const supabase = createClient();
-        void supabase
-          .from('sos_alerts')
-          .update({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-            updated_at: new Date(position.timestamp).toISOString(),
-          })
-          .eq('hangout_id', hangoutId)
-          .eq('user_id', userId)
-          .then();
-      },
-      null,
-      { enableHighAccuracy: true },
-    );
-
-    return () => {
-      if (watchRef.current === null) return;
-      navigator.geolocation.clearWatch(watchRef.current);
-      watchRef.current = null;
-    };
-  }, [hangoutId, userId, inSos]);
-
-  async function handleInvite() {
-    if (!buddyId) return;
-
-    setPending(true);
-    setError(null);
-
+  async function saveName(name: string) {
     const supabase = createClient();
-    const { error } = await supabase.from('hangout_invites').insert({
-      hangout_id: hangoutId,
-      user_id: buddyId,
-    });
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setBuddyId('');
+    return supabase.from('hangouts').update({ name }).eq('id', hangoutId);
   }
 
-  async function handleRequest() {
-    setPending(true);
-    setError(null);
+  async function logDrink(log: FullHangoutDrink) {
+    setDrinkLogs((current) => [...current, log]);
 
-    const supabase = createClient();
+    if (state !== HangoutState.Creator) return;
 
-    if (token) {
-      const { error } = await supabase
-        .from('hangout_members')
-        .insert({
-          hangout_id: hangoutId,
-          user_id: userId,
-        })
-        .setHeader('x-share-token', token);
+    if (!navigator.geolocation) {
+      if (!lastSpot) {
+        setHere(null);
+        setSpotOpen(true);
+      }
 
-      if (!error) {
-        setPending(false);
-        setState(HangoutState.Member);
-        setMembers((current) => [...current, { user_id: userId }]);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition((position) => {
+      const point = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+      };
+
+      if (
+        lastSpot &&
+        lastSpot.lat != null &&
+        lastSpot.lon != null &&
+        distanceBetween(
+          { latitude: lastSpot.lat, longitude: lastSpot.lon },
+          { latitude: point.lat, longitude: point.lon },
+        ) <
+          100 + position.coords.accuracy
+      ) {
         return;
       }
-    }
 
-    const { error } = await supabase.from('hangout_requests').insert({
-      hangout_id: hangoutId,
-      user_id: userId,
+      setHere(point);
+      setSpotOpen(true);
     });
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setState(HangoutState.Requested);
   }
 
-  async function handleCancel() {
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('hangout_requests')
-      .delete()
-      .eq('hangout_id', hangoutId)
-      .eq('user_id', userId);
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setState(HangoutState.Initial);
-  }
-
-  async function handleAccept() {
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase.from('hangout_members').insert({
-      hangout_id: hangoutId,
-      user_id: userId,
-    });
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setState(HangoutState.Member);
-    setMembers((current) => [...current, { user_id: userId }]);
-  }
-
-  async function handleDecline() {
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('hangout_invites')
-      .delete()
-      .eq('hangout_id', hangoutId)
-      .eq('user_id', userId);
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setState(HangoutState.Initial);
-  }
-
-  async function handleLeave() {
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('hangout_members')
-      .delete()
-      .eq('hangout_id', hangoutId)
-      .eq('user_id', userId);
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setState(HangoutState.Initial);
-    setMembers((current) => current.filter((m) => m.user_id !== userId));
-  }
-
-  async function handleSos() {
-    setPending(true);
-    setError(null);
-
-    const position: GeolocationPosition | null = await new Promise(
-      (resolve) => {
-        if (!navigator.geolocation) {
-          resolve(null);
-          return;
-        }
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            resolve(position);
-          },
-          () => {
-            resolve(null);
-          },
-          { enableHighAccuracy: true },
-        );
-      },
-    );
-    const timestamp = position?.timestamp ?? Date.now();
-
-    const supabase = createClient();
-    const { error } = await supabase.from('sos_alerts').insert({
-      hangout_id: hangoutId,
-      user_id: userId,
-      lat: position?.coords.latitude ?? null,
-      lon: position?.coords.longitude ?? null,
-      updated_at: new Date(timestamp).toISOString(),
-    });
-
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    updatedAtRef.current = timestamp;
-    setInSos(true);
-  }
-
-  async function handleCancelSos() {
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('sos_alerts')
-      .delete()
-      .eq('hangout_id', hangoutId)
-      .eq('user_id', userId);
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    updatedAtRef.current = 0;
-    setInSos(false);
-  }
-
-  async function handleRemove(memberId: string) {
-    setPending(true);
-    setError(null);
-
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('hangout_members')
-      .delete()
-      .eq('hangout_id', hangoutId)
-      .eq('user_id', memberId);
-    setPending(false);
-    if (error) {
-      setError(error.message);
-      return;
-    }
-    setMembers((current) => current.filter((m) => m.user_id !== memberId));
-  }
+  useEffect(() => {
+    document.documentElement.classList.add('scrollbar-none');
+    return () => document.documentElement.classList.remove('scrollbar-none');
+  }, []);
 
   return (
-    <div>
-      {error && <p role="alert">{error}</p>}
+    <main className="flex flex-1 flex-col px-3">
+      <header className="flex items-center justify-between pt-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Go back"
+          onClick={() => router.back()}
+        >
+          <IconChevronLeft className="size-5" />
+        </Button>
 
-      {(isCreator || state === HangoutState.Member) &&
-        (inSos ? (
-          <button onClick={handleCancelSos} disabled={pending}>
-            Cancel SOS
-          </button>
+        <SetSpot
+          isEditable={isActive && state === HangoutState.Creator}
+          lastSpot={lastSpot}
+          onOpen={(point) => {
+            setHere(point);
+            setSpotOpen(true);
+          }}
+        />
+      </header>
+
+      <div className="py-2">
+        {state === HangoutState.Creator ? (
+          <EditInput
+            label="Hangout name"
+            placeholder="Name this hangout"
+            value={name}
+            size="lg"
+            onSave={saveName}
+          />
         ) : (
-          <button onClick={handleSos} disabled={pending}>
-            SOS
-          </button>
-        ))}
+          <h1 className="truncate py-0.5 text-2xl/8 font-medium">{name}</h1>
+        )}
+      </div>
 
-      {isCreator && (
-        <div>
-          <select
-            value={buddyId}
-            onChange={(event) => setBuddyId(event.target.value)}
-          >
-            <option value="" disabled>
-              Select a buddy…
-            </option>
-            {buddies.map((buddy) => (
-              <option key={buddy.id} value={buddy.id}>
-                {buddy.id}
-              </option>
-            ))}
-          </select>
-          <button onClick={handleInvite} disabled={pending || !buddyId}>
-            Invite
-          </button>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <Members hangoutId={hangoutId} members={members} />
+        <Photos hangoutId={hangoutId} photos={photos} />
+      </div>
+
+      {isActive && isParticipant && (
+        <Camera
+          hangoutId={hangoutId}
+          onAdd={(photo) => setPhotos((current) => [photo, ...current])}
+        />
       )}
 
-      {!isCreator && state === HangoutState.Initial && (
-        <button onClick={handleRequest} disabled={pending}>
-          Join
-        </button>
-      )}
-      {!isCreator && state === HangoutState.Requested && (
-        <button onClick={handleCancel} disabled={pending}>
-          Cancel
-        </button>
-      )}
-      {!isCreator && state === HangoutState.Invited && (
-        <>
-          <button onClick={handleAccept} disabled={pending}>
-            Accept
-          </button>
-          <button onClick={handleDecline} disabled={pending}>
-            Decline
-          </button>
-        </>
-      )}
-      {!isCreator && state === HangoutState.Member && (
-        <button onClick={handleLeave} disabled={pending}>
-          Leave
-        </button>
+      {!!leaderboard.length && <Leaderboard entries={leaderboard} />}
+
+      {!!spots.length && <SpotHistory spots={spots} />}
+
+      {!!drinkLogs.length && (
+        <StatsChart
+          hangoutDrinks={drinkLogs}
+          profile={profile}
+          endedAt={endedAt}
+        />
       )}
 
-      <section>
-        <h2>Members</h2>
-        {members.map((member) => (
-          <div key={member.user_id}>
-            <p>{member.user_id}</p>
-            {isCreator && (
-              <button
-                onClick={() => handleRemove(member.user_id)}
-                disabled={pending}
-              >
-                Remove
-              </button>
-            )}
-          </div>
-        ))}
-      </section>
-    </div>
+      {isActive && isParticipant && (
+        <AddDrink
+          hangoutId={hangoutId}
+          userId={userId}
+          drinks={drinks}
+          drinkLogs={drinkLogs}
+          onAdd={logDrink}
+          onCreate={(drink) => setDrinks((current) => [...current, drink])}
+        />
+      )}
+
+      {!!drinkLogs.length && (
+        <Drinks
+          hangoutId={hangoutId}
+          userId={userId}
+          startedAt={startedAt}
+          endedAt={endedAt}
+          drinkLogs={drinkLogs}
+          onAdd={logDrink}
+          onUpdate={(updated) =>
+            setDrinkLogs((current) =>
+              current
+                .map((log) => (log.id === updated.id ? updated : log))
+                .sort((a, b) => a.created_at.localeCompare(b.created_at)),
+            )
+          }
+          onRemove={(logId) =>
+            setDrinkLogs((current) => current.filter((log) => log.id !== logId))
+          }
+        />
+      )}
+
+      <Action
+        hangoutId={hangoutId}
+        userId={userId}
+        userState={state}
+        isActive={isActive}
+        token={token}
+      />
+
+      <Overlay open={spotOpen} onOpenChange={setSpotOpen}>
+        <SelectSpot
+          hangoutId={hangoutId}
+          previous={lastSpot}
+          current={here}
+          onChange={(spot) => {
+            setLastSpot(spot);
+            setSpotOpen(false);
+          }}
+        />
+      </Overlay>
+    </main>
   );
 }
