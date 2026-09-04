@@ -331,6 +331,11 @@ create trigger remove_hangout_pending_on_insert
 after insert on public.hangout_members for each row
 execute function private.remove_hangout_pending ();
 
+alter table public.hangouts replica identity full;
+
+alter publication supabase_realtime
+add table public.hangouts;
+
 select
   cron.schedule (
     'clear-expired-hangout-shares',

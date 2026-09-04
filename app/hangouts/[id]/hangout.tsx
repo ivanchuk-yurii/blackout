@@ -121,6 +121,35 @@ export function Hangout({
     return () => document.documentElement.classList.remove('scrollbar-none');
   }, []);
 
+  useEffect(() => {
+    if (state === HangoutState.Creator) return;
+
+    const supabase = createClient();
+    const channel = supabase.channel(`hangouts:${hangoutId}`).on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'hangouts',
+        filter: `id=eq.${hangoutId}`,
+      },
+      (payload) => {
+        const previous = payload.old as Tables<'hangouts'>;
+        const hangout = payload.new as Tables<'hangouts'>;
+
+        if (hangout.ended_at !== previous.ended_at) {
+          router.refresh();
+        }
+      },
+    );
+
+    void supabase.realtime.setAuth().then(() => channel.subscribe());
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [hangoutId, state]);
+
   return (
     <main className="flex flex-1 flex-col px-3">
       <header className="flex items-center justify-between pt-4">

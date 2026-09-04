@@ -1,9 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { type Tables } from '@/lib/supabase/types';
 import { UserAvatar } from '@/components/common/user-avatar';
 import { Notifications } from './notifications';
 import { HangoutList } from './hangout-list';
+import { CreateHangout } from './create-hangout';
 import logo from '@/public/logo.png';
 
 export default async function HomePage() {
@@ -12,26 +14,33 @@ export default async function HomePage() {
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) return null;
 
-  const [{ data: user }, { count: notificationsCount }, { data: hangouts }] =
-    await Promise.all([
-      supabase.from('users').select().eq('id', auth.claims.sub).maybeSingle(),
-      supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .is('deleted_at', null)
-        .is('read_at', null),
-      supabase
-        .from('hangouts_feed')
-        .select()
-        .order('started_at', { ascending: false }),
-    ]);
+  const [
+    { data: user },
+    { count: notificationsCount },
+    { data: hangouts },
+    { data: buddies },
+  ] = await Promise.all([
+    supabase.from('users').select().eq('id', auth.claims.sub).maybeSingle(),
+    supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null)
+      .is('read_at', null),
+    supabase
+      .from('hangouts_feed')
+      .select()
+      .order('started_at', { ascending: false }),
+    supabase.from('my_buddies').select().order('created_at', {
+      ascending: false,
+    }),
+  ]);
 
   if (!user) return null;
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="relative flex flex-1 flex-col">
       <header className="flex shrink-0 items-center justify-between p-4">
-        <Image src={logo} alt="Blackout" width={99} height={24} priority />
+        <Image src={logo} alt="Blackout" height={24} priority />
 
         <div className="flex items-center gap-4">
           <Notifications count={notificationsCount ?? 0} />
@@ -43,6 +52,11 @@ export default async function HomePage() {
       </header>
 
       <HangoutList hangouts={hangouts ?? []} />
+
+      <CreateHangout
+        userId={user.id}
+        buddies={(buddies ?? []) as Tables<'users'>[]}
+      />
     </main>
   );
 }

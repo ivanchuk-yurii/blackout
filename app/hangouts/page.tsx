@@ -13,8 +13,6 @@ export default async function HangoutsPage() {
     <main>
       <h1>Hangouts</h1>
 
-      <Link href="/hangouts/create">Create hangout</Link>
-
       {hangouts?.map((hangout) => (
         <div key={hangout.id}>
           <Link href={`/hangouts/${hangout.id}`}>{hangout.name}</Link>
