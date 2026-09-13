@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import posthog from 'posthog-js';
 import { createClient } from '@/lib/supabase/client';
 import { BuddyState } from '@/app/buddies/[id]/state';
 
@@ -35,6 +36,9 @@ export function Buddy({
         .setHeader('x-share-token', token);
 
       if (!error) {
+        posthog.capture('buddy_connected', {
+          method: 'share_link',
+        });
         setPending(false);
         setState(BuddyState.Buddies);
         return;
@@ -50,6 +54,7 @@ export function Buddy({
       setError(error.message);
       return;
     }
+    posthog.capture('buddy_request_sent');
     setState(BuddyState.Requested);
   }
 
@@ -84,6 +89,9 @@ export function Buddy({
       setError(error.message);
       return;
     }
+    posthog.capture('buddy_connected', {
+      method: 'invitation',
+    });
     setState(BuddyState.Buddies);
   }
 

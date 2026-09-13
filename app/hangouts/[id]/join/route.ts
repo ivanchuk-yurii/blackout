@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { posthog, readIdentity } from '@/lib/posthog/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
@@ -20,10 +21,22 @@ export async function GET(
 
   if (!data?.claims) return NextResponse.redirect(target);
 
-  await supabase
+  const { error } = await supabase
     .from('hangout_members')
     .insert({ hangout_id: id, user_id: data.claims.sub })
     .setHeader('x-share-token', token);
+
+  if (!error) {
+    const { distinctId, properties } = readIdentity(request.cookies);
+
+    after(() =>
+      posthog.captureImmediate({
+        distinctId,
+        event: 'hangout_joined',
+        properties: { ...properties, hangout_id: id, method: 'share_link' },
+      }),
+    );
+  }
 
   return NextResponse.redirect(target);
 }

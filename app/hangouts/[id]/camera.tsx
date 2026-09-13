@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { IconCameraFilled } from '@tabler/icons-react';
 import { nanoid } from 'nanoid';
+import posthog from 'posthog-js';
 import { createClient } from '@/lib/supabase/client';
 import { type Photo } from '@/lib/supabase/custom-types';
 import { toast } from '@/components/ui/toast';
@@ -123,7 +124,12 @@ export function Camera({
     const { data: signed } = await supabase.storage
       .from('hangout-photos')
       .createSignedUrl(path, 60 * 60);
-    if (signed?.signedUrl) onAdd({ path, url: signed.signedUrl });
+    if (signed?.signedUrl) {
+      posthog.capture('hangout_photo_added', {
+        hangout_id: hangoutId,
+      });
+      onAdd({ path, url: signed.signedUrl });
+    }
   }, [hangoutId, onAdd]);
 
   useEffect(() => {

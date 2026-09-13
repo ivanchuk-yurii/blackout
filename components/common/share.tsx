@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { nanoid } from 'nanoid';
+import posthog from 'posthog-js';
 import { IconCheck, IconCopy, IconShare2 } from '@tabler/icons-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
@@ -19,11 +20,11 @@ const subscribe = () => () => {};
 
 export function Share({
   path,
-  title = 'Share',
+  title,
   onShare,
 }: {
   path: string;
-  title?: string;
+  title: string;
   onShare: (token: string) => Promise<{ error?: { message: string } | null }>;
 }) {
   const [token, setToken] = useState('');
@@ -65,6 +66,7 @@ export function Share({
       return;
     }
 
+    posthog.capture(`${title}_shared`);
     setToken(next);
     setPending(false);
     setOpen(true);
@@ -101,7 +103,7 @@ export function Share({
         <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
           <DrawerContent>
             <DrawerHeader>
-              <DrawerTitle>{title}</DrawerTitle>
+              <DrawerTitle>Share {title}</DrawerTitle>
               <DrawerDescription>
                 Scan the code or send the link
               </DrawerDescription>

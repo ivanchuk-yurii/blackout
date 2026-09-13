@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { posthog, readIdentity } from '@/lib/posthog/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTemplate } from '@/lib/notifications/templates';
 
@@ -25,6 +26,21 @@ export async function GET(
     .is('read_at', null);
 
   const { url } = getTemplate(notification);
+
+  if (notification.read_at === null) {
+    const { distinctId, properties } = readIdentity(request.cookies);
+
+    after(() =>
+      posthog.captureImmediate({
+        distinctId,
+        event: 'notification_read',
+        properties: {
+          ...properties,
+          notification_type: notification.type,
+        },
+      }),
+    );
+  }
 
   return NextResponse.redirect(`${origin}${url}`);
 }

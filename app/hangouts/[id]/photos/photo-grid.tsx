@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import posthog from 'posthog-js';
 import { IconDownload, IconTrash } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { type Photo } from '@/lib/supabase/custom-types';
@@ -24,7 +25,13 @@ function downloadUrl(url: string) {
   return next.toString();
 }
 
-export function PhotoGrid({ initialPhotos }: { initialPhotos: Photo[] }) {
+export function PhotoGrid({
+  hangoutId,
+  photos: initialPhotos,
+}: {
+  hangoutId: string;
+  photos: Photo[];
+}) {
   const [photos, setPhotos] = useState(initialPhotos);
   const [active, setActive] = useState<Photo | null>(null);
   const [pending, setPending] = useState(false);
@@ -44,6 +51,9 @@ export function PhotoGrid({ initialPhotos }: { initialPhotos: Photo[] }) {
       return;
     }
 
+    posthog.capture('hangout_photo_deleted', {
+      hangout_id: hangoutId,
+    });
     setPhotos((current) =>
       current.filter((photo) => photo.path !== active.path),
     );

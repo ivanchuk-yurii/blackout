@@ -98,7 +98,7 @@ export default async function HangoutMembersPage({
         {isActive && (
           <Share
             path={`/hangouts/${id}/join`}
-            title="Share hangout"
+            title="hangout"
             onShare={shareHangout}
           />
         )}

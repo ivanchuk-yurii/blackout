@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import posthog from 'posthog-js';
 import { IconPencil, IconRepeat, IconTrash } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -96,6 +97,7 @@ export function Drinks({
       toast.add({ type: 'error', title: error.message });
       return;
     }
+    posthog.capture('drink_repeated', { hangout_id: hangoutId });
     onAdd(data);
   }
 
@@ -112,6 +114,7 @@ export function Drinks({
       toast.add({ type: 'error', title: error.message });
       return;
     }
+    posthog.capture('drink_removed', { hangout_id: hangoutId });
     onRemove(logId);
   }
 
@@ -142,6 +145,7 @@ export function Drinks({
       setError(error.message);
       return;
     }
+    posthog.capture('drink_edited', { hangout_id: hangoutId });
     onUpdate(data);
     setEditing(null);
   }

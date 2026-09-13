@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
@@ -60,13 +61,23 @@ export function Action({
             .setHeader('x-share-token', token),
         true,
       ));
-    if (joined) return;
+    if (joined) {
+      posthog.capture('hangout_joined', {
+        hangout_id: hangoutId,
+        method: 'share_link',
+      });
+      return;
+    }
 
-    await run('join', () =>
+    const requested = await run('join', () =>
       supabase
         .from('hangout_requests')
         .insert({ hangout_id: hangoutId, user_id: userId }),
     );
+    if (requested)
+      posthog.capture('hangout_request_sent', {
+        hangout_id: hangoutId,
+      });
   }
 
   function handleCancel() {
@@ -80,13 +91,19 @@ export function Action({
     );
   }
 
-  function handleAccept() {
+  async function handleAccept() {
     const supabase = createClient();
-    return run('accept', () =>
+    const accepted = await run('accept', () =>
       supabase
         .from('hangout_members')
         .insert({ hangout_id: hangoutId, user_id: userId }),
     );
+    if (accepted) {
+      posthog.capture('hangout_joined', {
+        hangout_id: hangoutId,
+        method: 'invitation',
+      });
+    }
   }
 
   function handleDecline() {
@@ -111,21 +128,29 @@ export function Action({
     );
   }
 
-  function handleRestart() {
+  async function handleRestart() {
     const supabase = createClient();
-    return run('restart', () =>
+    const restarted = await run('restart', () =>
       supabase.from('hangouts').update({ ended_at: null }).eq('id', hangoutId),
     );
+    if (restarted)
+      posthog.capture('hangout_restarted', {
+        hangout_id: hangoutId,
+      });
   }
 
-  function handleEnd() {
+  async function handleEnd() {
     const supabase = createClient();
-    return run('end', () =>
+    const ended = await run('end', () =>
       supabase
         .from('hangouts')
         .update({ ended_at: new Date().toISOString() })
         .eq('id', hangoutId),
     );
+    if (ended)
+      posthog.capture('hangout_ended', {
+        hangout_id: hangoutId,
+      });
   }
 
   return (

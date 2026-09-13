@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import posthog from 'posthog-js';
 import {
   IconCheck,
   IconGlass,
@@ -127,6 +128,7 @@ export function AddDrink({
       setError(error.message);
       return;
     }
+    posthog.capture('drink_added', { hangout_id: hangoutId });
     onAdd(data);
     closeDrawer();
   }
@@ -154,6 +156,7 @@ export function AddDrink({
       setError(error.message);
       return;
     }
+    posthog.capture('custom_drink_created');
     onCreate(data);
     await handleAddDrink(data, volume);
   }

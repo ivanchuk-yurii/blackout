@@ -31,7 +31,7 @@ export default async function HangoutPhotosPage({
     <main className="flex flex-1 flex-col">
       <PageHeader title="Photos" />
 
-      <PhotoGrid initialPhotos={photos} />
+      <PhotoGrid hangoutId={id} photos={photos} />
     </main>
   );
 }

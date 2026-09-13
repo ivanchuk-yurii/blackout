@@ -10,6 +10,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import posthog from 'posthog-js';
 
 const STATUSES = [
   '☕ Taking it easy',
@@ -49,7 +50,9 @@ export function StatusPicker({
     if (updateError) {
       setStatus(previous);
       toast.add({ type: 'error', title: updateError.message });
+      return;
     }
+    posthog.capture('user_status_changed');
   }
 
   return (

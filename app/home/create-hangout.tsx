@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
 import { IconPlus, IconUserMinus, IconUserPlus } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { type Tables } from '@/lib/supabase/types';
@@ -144,6 +145,10 @@ export function CreateHangout({
       }
     }
 
+    posthog.capture('hangout_created', {
+      hangout_id: data.id,
+      invited_buddy_count: invited.length,
+    });
     router.refresh();
     router.push(`/hangouts/${data.id}`);
   }

@@ -167,12 +167,14 @@ with
 create policy "user accepts hangout share" on public.hangout_members for insert to authenticated
 with
   check (
-    (
+    private.is_hangout_active (hangout_id)
+    and (
       (
         select
           auth.uid ()
       ) = user_id
     )
+    and not private.is_hangout_participant (hangout_id)
     and exists (
       select
         1

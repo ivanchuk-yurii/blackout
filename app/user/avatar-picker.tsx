@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import AvatarEditor, { useAvatarEditor } from 'react-avatar-editor';
+import posthog from 'posthog-js';
 import { nanoid } from 'nanoid';
 import { createClient } from '@/lib/supabase/client';
 import { Tables } from '@/lib/supabase/types';
@@ -112,6 +113,7 @@ export function AvatarPicker({
       return;
     }
 
+    posthog.capture('user_avatar_changed');
     setAvatar(publicUrl);
     setFile(null);
     setPending(false);

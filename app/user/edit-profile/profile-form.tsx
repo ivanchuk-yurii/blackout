@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
 import {
   IconCalendar,
   IconChevronDown,
@@ -73,6 +74,8 @@ export function ProfileForm({
       setPending(false);
       return;
     }
+
+    posthog.capture('body_stats_completed', { initial });
 
     if (initial) {
       router.push('/home');

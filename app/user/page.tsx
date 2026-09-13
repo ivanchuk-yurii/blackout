@@ -74,7 +74,7 @@ export default async function UserPage() {
       <PageHeader title="Profile">
         <Share
           path={`/buddies/${user.id}`}
-          title="Share profile"
+          title="profile"
           onShare={shareProfile}
         />
         <Button
