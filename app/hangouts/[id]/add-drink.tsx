@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Fuse from 'fuse.js';
 import posthog from 'posthog-js';
 import {
   IconCheck,
@@ -42,6 +43,15 @@ import {
 import { VolumeSlider, VOLUME_RANGES } from '@/components/common/volume-slider';
 import { FieldError } from '@/components/ui/field';
 
+const FUSE_OPTIONS = {
+  keys: [
+    { name: 'name', weight: 2 },
+    { name: 'category', weight: 1 },
+  ],
+  threshold: 0.3,
+  ignoreLocation: true,
+};
+
 export function AddDrink({
   hangoutId,
   userId,
@@ -70,13 +80,10 @@ export function AddDrink({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const query = search.trim().toLowerCase();
+  const fuse = useMemo(() => new Fuse(drinks, FUSE_OPTIONS), [drinks]);
+  const query = search.trim();
   const matches = query
-    ? drinks.filter(
-        (drink) =>
-          drink.name.toLowerCase().includes(query) ||
-          drink.category.includes(query),
-      )
+    ? fuse.search(query).map((result) => result.item)
     : drinks;
   const category = pouringDrink?.category ?? newCategory;
 

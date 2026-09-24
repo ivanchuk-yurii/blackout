@@ -48,6 +48,32 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@theme {
+  --animate-emoji-cycle: emoji-cycle 36s linear infinite;
+
+  @keyframes emoji-cycle {
+    0% {
+      opacity: 0;
+      transform: translateY(4px) scale(0.8);
+    }
+    1.11% {
+      opacity: 1;
+      transform: none;
+    }
+    7.22% {
+      opacity: 1;
+      transform: none;
+    }
+    8.33% {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.8);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
 :root,
 .dark {
   color-scheme: dark;

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {
+  IconChevronRight,
   IconConfetti,
   IconGlassCocktail,
   IconMapPin2,
@@ -52,9 +53,12 @@ export function StatsGrid(counts: StatsGridProps) {
             <Icon className="size-4 shrink-0" />
             <span className="truncate text-xs/4">{label}</span>
           </div>
-          <span className="bg-linear-to-b from-[#fafafa] to-[#807a7a] bg-clip-text text-2xl/8 font-medium tabular-nums text-transparent">
-            {counts[key]}
-          </span>
+          <div className="flex items-center">
+            <span className="bg-linear-to-b from-[#fafafa] to-[#807a7a] bg-clip-text text-2xl/8 font-medium tabular-nums text-transparent">
+              {counts[key]}
+            </span>
+            <IconChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
+          </div>
         </Link>
       ))}
     </div>

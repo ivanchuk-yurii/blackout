@@ -21,7 +21,8 @@ export function PageHeader({
     const fromAuth = new URLSearchParams(window.location.search).has(
       'from-auth',
     );
-    if (fromAuth) router.push('/home');
+    const hasHistory = window.history.length > 1;
+    if (fromAuth || !hasHistory) router.push('/home');
     else router.back();
   };
 

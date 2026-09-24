@@ -109,12 +109,10 @@ export default async function UserPage() {
           spots={spotsCount ?? 0}
           drinks={drinksCount ?? 0}
         />
-        {favouriteDrink?.drinks && (
-          <FavouriteDrink
-            {...favouriteDrink.drinks}
-            count={favouriteDrink.count}
-          />
-        )}
+        <FavouriteDrink
+          {...favouriteDrink?.drinks}
+          count={favouriteDrink?.count}
+        />
         <DrinkingChart
           weeks={CHART_WEEKS}
           drinks={(recentDrinks ?? []).flatMap(({ drinks, ...drink }) =>
