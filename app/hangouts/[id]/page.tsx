@@ -27,6 +27,7 @@ export default async function HangoutPage({
     { data: hangoutDrinks },
     { data: files },
     { data: lastSpot },
+    { data: lastGame },
   ] = await Promise.all([
     supabase
       .from('hangouts')
@@ -55,6 +56,13 @@ export default async function HangoutPage({
     supabase
       .from('spots')
       .select('name, lat, lon')
+      .eq('hangout_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from('truth_or_lie')
+      .select('id, state, rounds')
       .eq('hangout_id', id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -147,6 +155,7 @@ export default async function HangoutPage({
       drinks={drinks ?? []}
       hangoutDrinks={hangoutDrinks ?? []}
       leaderboard={leaderboard ?? []}
+      lastGame={lastGame}
       token={token}
     />
   );

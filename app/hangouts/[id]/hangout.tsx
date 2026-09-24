@@ -25,6 +25,7 @@ import { SelectSpot, type Spot } from './select-spot';
 import { AddDrink } from './add-drink';
 import { Drinks } from './drinks';
 import { Leaderboard } from './leaderboard';
+import { TruthOrLie, type LastGame } from './truth-or-lie';
 import { SpotHistory } from './spot-history';
 import { StatsChart } from './stats-chart';
 
@@ -43,6 +44,7 @@ export function Hangout({
   drinks: initialDrinks,
   hangoutDrinks: initialHangoutDrinks,
   leaderboard,
+  lastGame,
   token,
 }: {
   hangoutId: string;
@@ -59,6 +61,7 @@ export function Hangout({
   drinks: Tables<'drinks'>[];
   hangoutDrinks: FullHangoutDrink[];
   leaderboard: HangoutLeaderboardEntry[];
+  lastGame: LastGame | null;
   token?: string;
 }) {
   const router = useRouter();
@@ -196,6 +199,16 @@ export function Hangout({
         <Camera
           hangoutId={hangoutId}
           onAdd={(photo) => setPhotos((current) => [photo, ...current])}
+        />
+      )}
+
+      {isParticipant && (
+        <TruthOrLie
+          hangoutId={hangoutId}
+          userId={userId}
+          isCreator={state === HangoutState.Creator}
+          isActive={isActive}
+          game={lastGame}
         />
       )}
 

@@ -771,6 +771,240 @@ export type Database = {
           },
         ];
       };
+      truth_or_lie: {
+        Row: {
+          created_at: string;
+          hangout_id: string;
+          id: string;
+          rounds: number;
+          state: Database['public']['Enums']['truth_or_lie_states'];
+        };
+        Insert: {
+          created_at?: string;
+          hangout_id: string;
+          id?: string;
+          rounds: number;
+          state?: Database['public']['Enums']['truth_or_lie_states'];
+        };
+        Update: {
+          created_at?: string;
+          hangout_id?: string;
+          id?: string;
+          rounds?: number;
+          state?: Database['public']['Enums']['truth_or_lie_states'];
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'truth_or_lie_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangouts_feed';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_hangout_id_fkey';
+            columns: ['hangout_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_hangout_ids';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      truth_or_lie_answers: {
+        Row: {
+          answer: boolean;
+          created_at: string;
+          question_id: string;
+          user_id: string;
+        };
+        Insert: {
+          answer: boolean;
+          created_at?: string;
+          question_id: string;
+          user_id: string;
+        };
+        Update: {
+          answer?: boolean;
+          created_at?: string;
+          question_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'truth_or_lie_answers_question_id_fkey';
+            columns: ['question_id'];
+            isOneToOne: false;
+            referencedRelation: 'truth_or_lie_questions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_answers_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_answers_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_buddies';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_answers_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      truth_or_lie_correct_answers: {
+        Row: {
+          answer: boolean;
+          id: string;
+        };
+        Insert: {
+          answer: boolean;
+          id: string;
+        };
+        Update: {
+          answer?: boolean;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'truth_or_lie_correct_answers_id_fkey';
+            columns: ['id'];
+            isOneToOne: true;
+            referencedRelation: 'truth_or_lie_questions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      truth_or_lie_members: {
+        Row: {
+          created_at: string;
+          game_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          game_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          game_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'truth_or_lie_members_game_id_fkey';
+            columns: ['game_id'];
+            isOneToOne: false;
+            referencedRelation: 'truth_or_lie';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_members_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_members_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_buddies';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_members_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      truth_or_lie_question_pool: {
+        Row: {
+          id: number;
+          question: string;
+        };
+        Insert: {
+          id?: number;
+          question: string;
+        };
+        Update: {
+          id?: number;
+          question?: string;
+        };
+        Relationships: [];
+      };
+      truth_or_lie_questions: {
+        Row: {
+          created_at: string;
+          game_id: string;
+          id: string;
+          question: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          game_id: string;
+          id?: string;
+          question: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          game_id?: string;
+          id?: string;
+          question?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'truth_or_lie_questions_game_id_fkey';
+            columns: ['game_id'];
+            isOneToOne: false;
+            referencedRelation: 'truth_or_lie';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_questions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_questions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_buddies';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'truth_or_lie_questions_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           birth_date: string;
@@ -984,6 +1218,7 @@ export type Database = {
         | 'hangout_request'
         | 'hangout_invite'
         | 'hangout_ended';
+      truth_or_lie_states: 'pending' | 'started' | 'finished';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -1122,6 +1357,7 @@ export const Constants = {
         'hangout_invite',
         'hangout_ended',
       ],
+      truth_or_lie_states: ['pending', 'started', 'finished'],
     },
   },
 } as const;
