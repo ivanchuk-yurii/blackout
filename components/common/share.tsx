@@ -22,10 +22,14 @@ export function Share({
   path,
   title,
   onShare,
+  children,
 }: {
   path: string;
   title: string;
   onShare: (token: string) => Promise<{ error?: { message: string } | null }>;
+  children?: (
+    trigger: Pick<React.ComponentProps<'button'>, 'onClick' | 'disabled'>,
+  ) => React.ReactNode;
 }) {
   const [token, setToken] = useState('');
   const [open, setOpen] = useState(false);
@@ -88,16 +92,20 @@ export function Share({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-lg"
-        aria-label={title}
-        onClick={handleClick}
-        disabled={pending}
-      >
-        <IconShare2 className="size-5" />
-      </Button>
+      {children ? (
+        children({ onClick: handleClick, disabled: pending })
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-lg"
+          aria-label={title}
+          onClick={handleClick}
+          disabled={pending}
+        >
+          <IconShare2 className="size-5" />
+        </Button>
+      )}
 
       {token && (
         <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>

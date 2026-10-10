@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import useSWR, { mutate as globalMutate } from 'swr';
 import { IconChevronLeft } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { type Tables } from '@/lib/supabase/types';
@@ -24,6 +25,8 @@ import { SetSpot } from './set-spot';
 import { SelectSpot, type Spot } from './select-spot';
 import { AddDrink } from './add-drink';
 import { Drinks } from './drinks';
+import { DrinksEmpty } from './drinks-empty';
+import { type MemberListItem } from './members/member-list';
 import { Leaderboard } from './leaderboard';
 import { TruthOrLie, type LastGame } from './truth-or-lie';
 import { SpotHistory } from './spot-history';
@@ -36,7 +39,7 @@ export function Hangout({
   name,
   startedAt,
   endedAt,
-  members,
+  members: initialMembers,
   photos: initialPhotos,
   spots,
   lastSpot: initialLastSpot,
@@ -46,6 +49,7 @@ export function Hangout({
   leaderboard,
   lastGame,
   token,
+  buddies,
 }: {
   hangoutId: string;
   userId: string;
@@ -54,6 +58,7 @@ export function Hangout({
   endedAt: string | null;
   state: HangoutState;
   members: Tables<'users'>[];
+  buddies: MemberListItem[];
   photos: Photo[];
   spots: Spot[];
   lastSpot: Spot | null;
@@ -65,12 +70,33 @@ export function Hangout({
   token?: string;
 }) {
   const router = useRouter();
-  const [lastSpot, setLastSpot] = useState(initialLastSpot);
   const [spotOpen, setSpotOpen] = useState(false);
   const [here, setHere] = useState<Point | null>(null);
-  const [photos, setPhotos] = useState(initialPhotos);
-  const [drinks, setDrinks] = useState(initialDrinks);
-  const [drinkLogs, setDrinkLogs] = useState(initialHangoutDrinks);
+  const { data: lastSpot, mutate: mutateLastSpot } = useSWR<Spot | null>(
+    `hangout/${hangoutId}/spot`,
+    null,
+    { fallbackData: initialLastSpot },
+  );
+  const { data: members } = useSWR<Tables<'users'>[]>(
+    `hangout/${hangoutId}/members/recent`,
+    null,
+    { fallbackData: initialMembers },
+  );
+  const { data: photos, mutate: mutatePhotos } = useSWR<Photo[]>(
+    `hangout/${hangoutId}/photos/recent`,
+    null,
+    { fallbackData: initialPhotos },
+  );
+  const { data: drinks, mutate: mutateDrinks } = useSWR<Tables<'drinks'>[]>(
+    `drinks/${userId}`,
+    null,
+    { fallbackData: initialDrinks },
+  );
+  const { data: drinkLogs, mutate: mutateDrinkLogs } = useSWR<
+    FullHangoutDrink[]
+  >(`hangout/${hangoutId}/drinks/${userId}`, null, {
+    fallbackData: initialHangoutDrinks,
+  });
 
   const isParticipant =
     state === HangoutState.Member || state === HangoutState.Creator;
@@ -81,8 +107,34 @@ export function Hangout({
     return supabase.from('hangouts').update({ name }).eq('id', hangoutId);
   }
 
+  function addPhoto(photo: Photo) {
+    void mutatePhotos((current = initialPhotos) => [photo, ...current]);
+
+    void globalMutate(`hangout/${hangoutId}/photos/all`, (current?: Photo[]) =>
+      current ? [photo, ...current] : undefined,
+    );
+  }
+
+  function createDrink(drink: Tables<'drinks'>) {
+    void mutateDrinks((current = initialDrinks) => [...current, drink]);
+  }
+
+  function updateDrinkLog(updated: FullHangoutDrink) {
+    void mutateDrinkLogs((current = initialHangoutDrinks) =>
+      current
+        .map((log) => (log.id === updated.id ? updated : log))
+        .sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    );
+  }
+
+  function removeDrinkLog(logId: string) {
+    void mutateDrinkLogs((current = initialHangoutDrinks) =>
+      current.filter((log) => log.id !== logId),
+    );
+  }
+
   async function logDrink(log: FullHangoutDrink) {
-    setDrinkLogs((current) => [...current, log]);
+    void mutateDrinkLogs((current = initialHangoutDrinks) => [...current, log]);
 
     if (state !== HangoutState.Creator) return;
 
@@ -168,7 +220,7 @@ export function Hangout({
 
         <SetSpot
           isEditable={isActive && state === HangoutState.Creator}
-          lastSpot={lastSpot}
+          lastSpot={lastSpot ?? null}
           onOpen={(point) => {
             setHere(point);
             setSpotOpen(true);
@@ -191,18 +243,19 @@ export function Hangout({
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <Members hangoutId={hangoutId} members={members} />
-        <Photos hangoutId={hangoutId} photos={photos} />
+        <Members
+          hangoutId={hangoutId}
+          userId={userId}
+          members={members ?? []}
+        />
+        <Photos hangoutId={hangoutId} photos={photos ?? []} />
       </div>
 
       {isActive && isParticipant && (
-        <Camera
-          hangoutId={hangoutId}
-          onAdd={(photo) => setPhotos((current) => [photo, ...current])}
-        />
+        <Camera hangoutId={hangoutId} onAdd={addPhoto} />
       )}
 
-      {isParticipant && (
+      {false && isParticipant && (
         <TruthOrLie
           hangoutId={hangoutId}
           userId={userId}
@@ -216,7 +269,7 @@ export function Hangout({
 
       {!!spots.length && <SpotHistory spots={spots} />}
 
-      {!!drinkLogs.length && (
+      {false && !!drinkLogs?.length && (
         <StatsChart
           hangoutDrinks={drinkLogs}
           profile={profile}
@@ -228,14 +281,17 @@ export function Hangout({
         <AddDrink
           hangoutId={hangoutId}
           userId={userId}
-          drinks={drinks}
-          drinkLogs={drinkLogs}
+          drinks={drinks ?? []}
           onAdd={logDrink}
-          onCreate={(drink) => setDrinks((current) => [...current, drink])}
+          onCreate={createDrink}
         />
       )}
 
-      {!!drinkLogs.length && (
+      {isActive && isParticipant && !drinkLogs?.length && (
+        <DrinksEmpty hangoutId={hangoutId} buddies={buddies} />
+      )}
+
+      {!!drinkLogs?.length && (
         <Drinks
           hangoutId={hangoutId}
           userId={userId}
@@ -243,16 +299,8 @@ export function Hangout({
           endedAt={endedAt}
           drinkLogs={drinkLogs}
           onAdd={logDrink}
-          onUpdate={(updated) =>
-            setDrinkLogs((current) =>
-              current
-                .map((log) => (log.id === updated.id ? updated : log))
-                .sort((a, b) => a.created_at.localeCompare(b.created_at)),
-            )
-          }
-          onRemove={(logId) =>
-            setDrinkLogs((current) => current.filter((log) => log.id !== logId))
-          }
+          onUpdate={updateDrinkLog}
+          onRemove={removeDrinkLog}
         />
       )}
 
@@ -267,10 +315,10 @@ export function Hangout({
       <Overlay open={spotOpen} onOpenChange={setSpotOpen}>
         <SelectSpot
           hangoutId={hangoutId}
-          previous={lastSpot}
+          previous={lastSpot ?? null}
           current={here}
           onChange={(spot) => {
-            setLastSpot(spot);
+            void mutateLastSpot(spot);
             setSpotOpen(false);
           }}
         />

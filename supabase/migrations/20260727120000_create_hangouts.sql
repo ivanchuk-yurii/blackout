@@ -269,9 +269,9 @@ create policy "user cancels own hangout invites" on public.hangout_invites for d
 
 create policy "creator cancels hangout invites" on public.hangout_invites for delete to authenticated using (private.is_hangout_creator (hangout_id));
 
-create policy "creator manages own hangout shares" on public.hangout_shares for all to authenticated using (
+create policy "participant manages own hangout shares" on public.hangout_shares for all to authenticated using (
   private.is_hangout_active (id)
-  and private.is_hangout_creator (id)
+  and private.is_hangout_participant (id)
 );
 
 create policy "read hangout share by token" on public.hangout_shares for

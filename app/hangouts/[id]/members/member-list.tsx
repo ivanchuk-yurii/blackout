@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import useSWR, { mutate as globalMutate } from 'swr';
 import {
   IconCheck,
   IconClockX,
@@ -26,17 +27,45 @@ export function MemberList({
   hangoutId,
   isActive,
   items: initialItems,
+  buddies,
 }: {
   hangoutId: string;
   isActive: boolean;
   items: MemberListItem[];
+  buddies: Tables<'users'>[];
 }) {
-  const [items, setItems] = useState(initialItems);
+  const { data: items, mutate: mutateItems } = useSWR<MemberListItem[]>(
+    `hangout/${hangoutId}/members/all`,
+    null,
+    { fallbackData: initialItems },
+  );
   const [pending, setPending] = useState<string | null>(null);
 
-  function setType(id: string, type: HangoutState) {
-    setItems((current) =>
-      current.map((item) => (item.user.id === id ? { ...item, type } : item)),
+  async function setType(id: string, type: HangoutState | null) {
+    const nextItems = await mutateItems((current = initialItems) =>
+      type
+        ? current.map((item) =>
+            item.user.id === id ? { ...item, type } : item,
+          )
+        : current.filter((item) => item.user.id !== id),
+    );
+
+    void globalMutate(`hangout/${hangoutId}/members/recent`, () =>
+      nextItems
+        ?.filter(
+          (item) =>
+            item.type === HangoutState.Creator ||
+            item.type === HangoutState.Member,
+        )
+        .map((item) => item.user),
+    );
+
+    void globalMutate(`hangout/${hangoutId}/buddies`, () =>
+      nextItems?.filter(
+        (item) =>
+          item.type === HangoutState.Initial ||
+          item.type === HangoutState.Invited,
+      ),
     );
   }
 
@@ -54,7 +83,7 @@ export function MemberList({
       return;
     }
 
-    setType(id, HangoutState.Member);
+    await setType(id, HangoutState.Member);
   }
 
   async function handleDeny(id: string) {
@@ -73,7 +102,7 @@ export function MemberList({
       return;
     }
 
-    setType(id, HangoutState.Initial);
+    await setType(id, HangoutState.Initial);
   }
 
   async function handleCancelInvite(id: string) {
@@ -92,7 +121,7 @@ export function MemberList({
       return;
     }
 
-    setType(id, HangoutState.Initial);
+    await setType(id, HangoutState.Initial);
   }
 
   async function handleRemove(id: string) {
@@ -111,7 +140,10 @@ export function MemberList({
       return;
     }
 
-    setType(id, HangoutState.Initial);
+    await setType(
+      id,
+      buddies.some((buddy) => buddy.id === id) ? HangoutState.Initial : null,
+    );
   }
 
   async function handleInvite(id: string) {
@@ -128,12 +160,12 @@ export function MemberList({
       return;
     }
 
-    setType(id, HangoutState.Invited);
+    await setType(id, HangoutState.Invited);
   }
 
   return (
     <ul className="mt-4 px-4">
-      {items.map((item, index) => (
+      {items?.map((item, index) => (
         <li key={item.user.id}>
           {index > 0 && <Separator />}
           <UserListItem {...item.user}>

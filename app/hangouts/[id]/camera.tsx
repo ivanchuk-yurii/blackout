@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import posthog from 'posthog-js';
 import { createClient } from '@/lib/supabase/client';
 import { type Photo } from '@/lib/supabase/custom-types';
+import { SIGN_TTL } from '@/app/hangouts/[id]/photo';
 import { toast } from '@/components/ui/toast';
 import { Overlay, OverlayClose } from '@/components/common/overlay';
 
@@ -123,7 +124,7 @@ export function Camera({
 
     const { data: signed } = await supabase.storage
       .from('hangout-photos')
-      .createSignedUrl(path, 60 * 60);
+      .createSignedUrl(path, SIGN_TTL);
     if (signed?.signedUrl) {
       posthog.capture('hangout_photo_added', {
         hangout_id: hangoutId,

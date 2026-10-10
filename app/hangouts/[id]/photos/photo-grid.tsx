@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import useSWR, { mutate as globalMutate } from 'swr';
 import posthog from 'posthog-js';
 import { IconDownload, IconTrash } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import { type Photo } from '@/lib/supabase/custom-types';
+import { STACK_LIMIT } from '@/app/hangouts/[id]/photo';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
 import { Overlay, OverlayClose } from '@/components/common/overlay';
@@ -32,7 +34,11 @@ export function PhotoGrid({
   hangoutId: string;
   photos: Photo[];
 }) {
-  const [photos, setPhotos] = useState(initialPhotos);
+  const { data: photos, mutate: mutatePhotos } = useSWR<Photo[]>(
+    `hangout/${hangoutId}/photos/all`,
+    null,
+    { fallbackData: initialPhotos },
+  );
   const [active, setActive] = useState<Photo | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -54,8 +60,12 @@ export function PhotoGrid({
     posthog.capture('hangout_photo_deleted', {
       hangout_id: hangoutId,
     });
-    setPhotos((current) =>
+    const currentPhotos = await mutatePhotos((current = initialPhotos) =>
       current.filter((photo) => photo.path !== active.path),
+    );
+
+    void globalMutate(`hangout/${hangoutId}/photos/recent`, () =>
+      currentPhotos?.slice(0, STACK_LIMIT),
     );
     setPending(false);
     setActive(null);
@@ -64,7 +74,7 @@ export function PhotoGrid({
   return (
     <>
       <ul className="grid grid-cols-2 p-4">
-        {photos.map((photo) => (
+        {photos?.map((photo) => (
           <li key={photo.path} style={{ rotate: `${tilt(photo.path)}deg` }}>
             <button
               type="button"

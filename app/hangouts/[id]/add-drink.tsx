@@ -5,7 +5,6 @@ import Fuse from 'fuse.js';
 import posthog from 'posthog-js';
 import {
   IconCheck,
-  IconGlass,
   IconGlassFull,
   IconGlassOff,
   IconPlus,
@@ -56,14 +55,12 @@ export function AddDrink({
   hangoutId,
   userId,
   drinks,
-  drinkLogs,
   onAdd,
   onCreate,
 }: {
   hangoutId: string;
   userId: string;
   drinks: Tables<'drinks'>[];
-  drinkLogs: FullHangoutDrink[];
   onAdd: (log: FullHangoutDrink) => void;
   onCreate: (drink: Tables<'drinks'>) => void;
 }) {
@@ -170,34 +167,14 @@ export function AddDrink({
 
   return (
     <>
-      {drinkLogs.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <IconGlass />
-            </EmptyMedia>
-            <EmptyTitle>No drinks yet</EmptyTitle>
-            <EmptyDescription className="max-w-xs text-pretty">
-              Log what you drink to keep track of the night.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button size="lg" onClick={() => setShowDrinkList(true)}>
-              <IconGlassFull data-icon="inline-start" />
-              Add drink
-            </Button>
-          </EmptyContent>
-        </Empty>
-      ) : (
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={() => setShowDrinkList(true)}
-        >
-          <IconGlassFull data-icon="inline-start" />
-          Add drink
-        </Button>
-      )}
+      <Button
+        size="lg"
+        className="w-full mt-8"
+        onClick={() => setShowDrinkList(true)}
+      >
+        <IconGlassFull data-icon="inline-start" />
+        Add drink
+      </Button>
 
       <Drawer
         open={showDrinkList}

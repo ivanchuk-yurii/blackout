@@ -6,10 +6,12 @@ import { UserAvatar } from '@/components/common/user-avatar';
 
 export function Members({
   hangoutId,
+  userId,
   members,
   count = 3,
 }: {
   hangoutId: string;
+  userId: string;
   members: Tables<'users'>[];
   count?: number;
 }) {
@@ -31,7 +33,11 @@ export function Members({
       </AvatarGroup>
 
       <p className="text-xs text-foreground">
-        {members.length} {members.length === 1 ? 'person' : 'people'}
+        {members.length > 1
+          ? `${members.length} people`
+          : members[0]?.id === userId
+            ? 'Just you'
+            : `${members.length} person`}
       </p>
 
       <IconChevronRight className="size-4 text-muted-foreground" />

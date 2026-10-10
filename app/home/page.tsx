@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { type Tables } from '@/lib/supabase/types';
 import { UserAvatar } from '@/components/common/user-avatar';
 import { Notifications } from './notifications';
 import { HangoutList } from './hangout-list';
@@ -14,26 +13,19 @@ export default async function HomePage() {
   const { data: auth } = await supabase.auth.getClaims();
   if (!auth?.claims) return null;
 
-  const [
-    { data: user },
-    { count: notificationsCount },
-    { data: hangouts },
-    { data: buddies },
-  ] = await Promise.all([
-    supabase.from('users').select().eq('id', auth.claims.sub).maybeSingle(),
-    supabase
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .is('deleted_at', null)
-      .is('read_at', null),
-    supabase
-      .from('hangouts_feed')
-      .select()
-      .order('started_at', { ascending: false }),
-    supabase.from('my_buddies').select().order('created_at', {
-      ascending: false,
-    }),
-  ]);
+  const [{ data: user }, { count: notificationsCount }, { data: hangouts }] =
+    await Promise.all([
+      supabase.from('users').select().eq('id', auth.claims.sub).maybeSingle(),
+      supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null)
+        .is('read_at', null),
+      supabase
+        .from('hangouts_feed')
+        .select()
+        .order('started_at', { ascending: false }),
+    ]);
 
   if (!user) return null;
 
@@ -53,10 +45,7 @@ export default async function HomePage() {
 
       <HangoutList hangouts={hangouts ?? []} />
 
-      <CreateHangout
-        userId={user.id}
-        buddies={(buddies ?? []) as Tables<'users'>[]}
-      />
+      <CreateHangout userId={user.id} />
     </main>
   );
 }

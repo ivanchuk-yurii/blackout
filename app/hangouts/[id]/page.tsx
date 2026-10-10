@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
+import { type Tables } from '@/lib/supabase/types';
 import { type HangoutLeaderboardEntry } from '@/lib/supabase/custom-types';
+import { type MemberListItem } from './members/member-list';
+import { SIGN_TTL, STACK_LIMIT } from './photo';
 import { Hangout } from './hangout';
 import { HangoutState } from './state';
 
@@ -50,9 +53,10 @@ export default async function HangoutPage({
       .eq('hangout_id', id)
       .eq('user_id', userId)
       .order('created_at'),
-    supabase.storage
-      .from('hangout-photos')
-      .list(id, { limit: 5, sortBy: { column: 'created_at', order: 'desc' } }),
+    supabase.storage.from('hangout-photos').list(id, {
+      limit: STACK_LIMIT,
+      sortBy: { column: 'created_at', order: 'desc' },
+    }),
     supabase
       .from('spots')
       .select('name, lat, lon')
@@ -111,29 +115,57 @@ export default async function HangoutPage({
     return HangoutState.Initial;
   }
 
-  const [{ data: signed }, state, { data: leaderboard }, { data: spots }] =
-    await Promise.all([
-      paths.length
-        ? supabase.storage
-            .from('hangout-photos')
-            .createSignedUrls(paths, 60 * 60)
-        : { data: [] },
-      getState(),
-      isEnded
-        ? supabase
-            .from('hangout_leaderboard')
-            .select()
-            .eq('hangout_id', id)
-            .overrideTypes<HangoutLeaderboardEntry[], { merge: false }>()
-        : { data: [] },
-      isEnded
-        ? supabase
-            .from('spots')
-            .select('name, lat, lon')
-            .eq('hangout_id', id)
-            .order('created_at')
-        : { data: [] },
-    ]);
+  const hasInvite = !hangoutDrinks?.length && isCreator && !isEnded;
+
+  const [
+    { data: signed },
+    state,
+    { data: leaderboard },
+    { data: spots },
+    { data: buddies },
+    { data: invites },
+  ] = await Promise.all([
+    paths.length
+      ? supabase.storage
+          .from('hangout-photos')
+          .createSignedUrls(paths, SIGN_TTL)
+      : { data: [] },
+    getState(),
+    isEnded
+      ? supabase
+          .from('hangout_leaderboard')
+          .select()
+          .eq('hangout_id', id)
+          .overrideTypes<HangoutLeaderboardEntry[], { merge: false }>()
+      : { data: [] },
+    isEnded
+      ? supabase
+          .from('spots')
+          .select('name, lat, lon')
+          .eq('hangout_id', id)
+          .order('created_at')
+      : { data: [] },
+    hasInvite
+      ? supabase
+          .from('my_buddies')
+          .select()
+          .order('created_at', { ascending: false })
+      : { data: [] },
+    hasInvite
+      ? supabase.from('hangout_invites').select('user_id').eq('hangout_id', id)
+      : { data: [] },
+  ]);
+
+  const invitableBuddies: MemberListItem[] = (
+    (buddies ?? []) as Tables<'users'>[]
+  )
+    .filter((user) => !participants.some((member) => member.id === user.id))
+    .map((user) => ({
+      type: invites?.some(({ user_id }) => user_id === user.id)
+        ? HangoutState.Invited
+        : HangoutState.Initial,
+      user,
+    }));
 
   const photos = (signed ?? [])
     .filter((entry) => !entry.error && entry.signedUrl && entry.path)
@@ -148,6 +180,7 @@ export default async function HangoutPage({
       endedAt={hangout.ended_at}
       state={state}
       members={participants}
+      buddies={invitableBuddies}
       photos={photos}
       spots={spots ?? []}
       lastSpot={lastSpot}

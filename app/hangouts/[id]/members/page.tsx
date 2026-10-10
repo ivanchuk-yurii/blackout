@@ -104,7 +104,12 @@ export default async function HangoutMembersPage({
         )}
       </PageHeader>
 
-      <MemberList hangoutId={id} isActive={isActive} items={items} />
+      <MemberList
+        hangoutId={id}
+        isActive={isActive}
+        items={items}
+        buddies={(buddies ?? []) as Tables<'users'>[]}
+      />
     </main>
   );
 }
