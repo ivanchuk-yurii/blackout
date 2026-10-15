@@ -1,5 +1,4 @@
-import { type HangoutLeaderboardEntry } from '@/lib/supabase/custom-types';
-import { calculateUnits } from '@/lib/utils/calculate-weekly-drinks';
+import { type Tables } from '@/lib/supabase/types';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -7,24 +6,10 @@ const WHOLE = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 });
 const DECIMAL = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 });
 
 export function Leaderboard({
-  entries,
+  places,
 }: {
-  entries: HangoutLeaderboardEntry[];
+  places: Tables<'hangout_leaderboard'>[];
 }) {
-  const places = entries
-    .map((entry) => ({
-      id: entry.id,
-      name: entry.name,
-      avatar: entry.avatar,
-      count: entry.drinks.length,
-      volume: entry.drinks.reduce((total, drink) => total + drink.volume, 0),
-      units: entry.drinks.reduce(
-        (total, drink) => total + calculateUnits(drink.volume, drink.abv),
-        0,
-      ),
-    }))
-    .sort((a, b) => b.units - a.units);
-
   return (
     <ol className="my-2 divide-y divide-border rounded-2xl border border-border px-3">
       {places.map((place, index) => (
@@ -42,14 +27,14 @@ export function Leaderboard({
 
           <div className="shrink-0 text-right">
             <p className="font-heading text-lg font-medium tabular-nums">
-              {DECIMAL.format(place.units)}
+              {DECIMAL.format(place.units ?? 0)}
               <span className="ml-1 text-xs font-normal text-muted-foreground">
                 units
               </span>
             </p>
             <p className="text-xs text-muted-foreground tabular-nums">
               {place.count} {place.count === 1 ? 'drink' : 'drinks'} ·{' '}
-              {WHOLE.format(place.volume)} ml
+              {WHOLE.format(place.volume ?? 0)} ml
             </p>
           </div>
         </li>

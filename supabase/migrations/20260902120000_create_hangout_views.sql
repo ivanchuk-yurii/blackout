@@ -10,6 +10,19 @@ with
       id
     from
       public.my_buddy_ids
+  ),
+  visible_hangouts as (
+    select
+      p.hangout_id
+    from
+      public.hangout_participant_ids p
+    where
+      p.user_id in (
+        select
+          id
+        from
+          visible
+      )
   )
 select
   h.*,
@@ -31,24 +44,11 @@ from
       1
   ) s on true
 where
-  h.creator_id in (
+  h.id in (
     select
-      id
+      hangout_id
     from
-      visible
-  )
-  or h.id in (
-    select
-      m.hangout_id
-    from
-      public.hangout_members m
-    where
-      m.user_id in (
-        select
-          id
-        from
-          visible
-      )
+      visible_hangouts
   );
 
 create or replace view public.hangout_leaderboard
@@ -56,10 +56,12 @@ with
   (security_invoker = on) as
 select
   hd.hangout_id,
-  u.*,
-  jsonb_agg(
-    jsonb_build_object('id', d.id, 'volume', hd.volume, 'abv', d.abv)
-  ) as drinks
+  u.id,
+  u.name,
+  u.avatar,
+  count(*)::int as count,
+  sum(hd.volume)::int as volume,
+  sum(hd.volume * d.abv / 1000)::float8 as units
 from
   public.hangout_drinks hd
   join public.drinks d on d.id = hd.drink_id

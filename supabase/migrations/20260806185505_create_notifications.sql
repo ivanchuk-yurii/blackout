@@ -260,7 +260,7 @@ select
     $$
     with ended as (
       update public.hangouts h
-      set ended_at = now()
+      set ended_at = now(), ended_by = 'system'
       where h.ended_at is null
         and extract(hour from now() at time zone h.timezone) = 7
       returning h.id, h.name, h.creator_id

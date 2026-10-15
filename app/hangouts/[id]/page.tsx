@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { type Tables } from '@/lib/supabase/types';
-import { type HangoutLeaderboardEntry } from '@/lib/supabase/custom-types';
 import { type MemberListItem } from './members/member-list';
 import { SIGN_TTL, STACK_LIMIT } from './photo';
 import { Hangout } from './hangout';
@@ -136,7 +135,7 @@ export default async function HangoutPage({
           .from('hangout_leaderboard')
           .select()
           .eq('hangout_id', id)
-          .overrideTypes<HangoutLeaderboardEntry[], { merge: false }>()
+          .order('units', { ascending: false })
       : { data: [] },
     isEnded
       ? supabase

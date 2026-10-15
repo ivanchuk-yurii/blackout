@@ -19,23 +19,18 @@ create table public.hangout_drinks (
   created_at timestamptz not null default now()
 );
 
-create view public.favorite_drink_ids
+create view public.unique_drink_ids
 with
   (security_invoker = on) as
 select
+  hd.user_id,
   hd.drink_id as id,
   count(*)::int as count
 from
   public.hangout_drinks hd
-where
-  hd.user_id = (
-    select
-      auth.uid ()
-  )
 group by
-  hd.drink_id
-order by
-  count desc;
+  hd.user_id,
+  hd.drink_id;
 
 create policy "user reads drinks" on public.drinks for
 select

@@ -13,20 +13,28 @@ create table public.spots (
   created_at timestamptz not null default now()
 );
 
-create view public.my_spot_ids
+create view public.user_spot_ids
 with
   (security_invoker = on) as
 select
-  s.id
+  s.google_maps_id,
+  p.user_id
 from
   public.spots s
-where
-  s.hangout_id in (
-    select
-      id
-    from
-      public.my_hangout_ids
-  );
+  join public.hangout_participant_ids p on p.hangout_id = s.hangout_id;
+
+create view public.unique_spot_ids
+with
+  (security_invoker = on) as
+select
+  usi.user_id,
+  usi.google_maps_id,
+  count(*)::int as count
+from
+  public.user_spot_ids usi
+group by
+  usi.user_id,
+  usi.google_maps_id;
 
 create policy "participant reads hangout spots" on public.spots for
 select

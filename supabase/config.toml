@@ -431,5 +431,12 @@ enabled = true
 [functions.notify]
 enabled = true
 verify_jwt = false
-import_map = "./functions/notify/deno.json"
+import_map = "./functions/deno.json"
 entrypoint = "./functions/notify/index.ts"
+
+[functions.award]
+enabled = true
+verify_jwt = false
+import_map = "./functions/deno.json"
+entrypoint = "./functions/award/index.ts"
+static_files = ["./functions/award/triggers/**/*.ts"]

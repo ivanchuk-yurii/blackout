@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { EditInput } from '@/components/common/edit-input';
 import {
   type FullHangoutDrink,
-  type HangoutLeaderboardEntry,
   type Photo,
   type Point,
 } from '@/lib/supabase/custom-types';
@@ -65,7 +64,7 @@ export function Hangout({
   profile: Tables<'user_profiles'> | null;
   drinks: Tables<'drinks'>[];
   hangoutDrinks: FullHangoutDrink[];
-  leaderboard: HangoutLeaderboardEntry[];
+  leaderboard: Tables<'hangout_leaderboard'>[];
   lastGame: LastGame | null;
   token?: string;
 }) {
@@ -265,13 +264,13 @@ export function Hangout({
         />
       )}
 
-      {!!leaderboard.length && <Leaderboard entries={leaderboard} />}
+      {!!leaderboard.length && <Leaderboard places={leaderboard} />}
 
       {!!spots.length && <SpotHistory spots={spots} />}
 
       {false && !!drinkLogs?.length && (
         <StatsChart
-          hangoutDrinks={drinkLogs}
+          hangoutDrinks={drinkLogs ?? []}
           profile={profile}
           endedAt={endedAt}
         />

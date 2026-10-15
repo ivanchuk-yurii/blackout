@@ -1,10 +1,13 @@
+create type public.hangout_ended_by as enum('user', 'system');
+
 create table public.hangouts (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 1 and 100),
   creator_id uuid not null references public.users (id) on delete cascade,
   timezone text not null,
   started_at timestamptz not null default now(),
-  ended_at timestamptz
+  ended_at timestamptz,
+  ended_by public.hangout_ended_by
 );
 
 create table public.hangout_members (
@@ -75,29 +78,20 @@ select private.is_hangout_creator (is_hangout_participant.hangout_id)
            or private.is_hangout_member(is_hangout_participant.hangout_id, auth.uid ());
 $$;
 
-create view public.my_hangout_ids
+create view public.hangout_participant_ids
 with
   (security_invoker = on) as
 select
-  id
+  h.id as hangout_id,
+  h.creator_id as user_id
 from
   public.hangouts h
-where
-  h.creator_id = (
-    select
-      auth.uid ()
-  )
-  or h.id in (
-    select
-      m.hangout_id
-    from
-      public.hangout_members m
-    where
-      m.user_id = (
-        select
-          auth.uid ()
-      )
-  );
+union
+select
+  m.hangout_id,
+  m.user_id
+from
+  public.hangout_members m;
 
 create policy "user reads hangout" on public.hangouts for
 select

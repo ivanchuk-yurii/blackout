@@ -34,6 +34,27 @@ export type Database = {
   };
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string;
+          group: string | null;
+          key: string;
+          trigger: Database['public']['Enums']['achievement_triggers'];
+        };
+        Insert: {
+          category: string;
+          group?: string | null;
+          key: string;
+          trigger: Database['public']['Enums']['achievement_triggers'];
+        };
+        Update: {
+          category?: string;
+          group?: string | null;
+          key?: string;
+          trigger?: Database['public']['Enums']['achievement_triggers'];
+        };
+        Relationships: [];
+      };
       buddies: {
         Row: {
           buddy_id: string;
@@ -296,13 +317,6 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'hangout_drinks_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'hangout_drinks_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
@@ -354,13 +368,6 @@ export type Database = {
             columns: ['hangout_id'];
             isOneToOne: false;
             referencedRelation: 'hangouts_feed';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'hangout_invites_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
             referencedColumns: ['id'];
           },
           {
@@ -418,13 +425,6 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'hangout_members_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'hangout_members_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
@@ -476,13 +476,6 @@ export type Database = {
             columns: ['hangout_id'];
             isOneToOne: false;
             referencedRelation: 'hangouts_feed';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'hangout_requests_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
             referencedColumns: ['id'];
           },
           {
@@ -539,19 +532,13 @@ export type Database = {
             referencedRelation: 'hangouts_feed';
             referencedColumns: ['id'];
           },
-          {
-            foreignKeyName: 'hangout_shares_id_fkey';
-            columns: ['id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
-            referencedColumns: ['id'];
-          },
         ];
       };
       hangouts: {
         Row: {
           creator_id: string;
           ended_at: string | null;
+          ended_by: Database['public']['Enums']['hangout_ended_by'] | null;
           id: string;
           name: string;
           started_at: string;
@@ -560,6 +547,7 @@ export type Database = {
         Insert: {
           creator_id: string;
           ended_at?: string | null;
+          ended_by?: Database['public']['Enums']['hangout_ended_by'] | null;
           id?: string;
           name: string;
           started_at?: string;
@@ -568,6 +556,7 @@ export type Database = {
         Update: {
           creator_id?: string;
           ended_at?: string | null;
+          ended_by?: Database['public']['Enums']['hangout_ended_by'] | null;
           id?: string;
           name?: string;
           started_at?: string;
@@ -687,13 +676,6 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'sos_alerts_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'sos_alerts_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
@@ -762,13 +744,6 @@ export type Database = {
             referencedRelation: 'hangouts_feed';
             referencedColumns: ['id'];
           },
-          {
-            foreignKeyName: 'spots_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
-            referencedColumns: ['id'];
-          },
         ];
       };
       truth_or_lie: {
@@ -806,13 +781,6 @@ export type Database = {
             columns: ['hangout_id'];
             isOneToOne: false;
             referencedRelation: 'hangouts_feed';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'truth_or_lie_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
             referencedColumns: ['id'];
           },
         ];
@@ -1005,6 +973,53 @@ export type Database = {
           },
         ];
       };
+      user_achievements: {
+        Row: {
+          created_at: string;
+          key: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          key: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          key?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_achievements_key_fkey';
+            columns: ['key'];
+            isOneToOne: false;
+            referencedRelation: 'achievements';
+            referencedColumns: ['key'];
+          },
+          {
+            foreignKeyName: 'user_achievements_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_achievements_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_buddies';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'user_achievements_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       user_profiles: {
         Row: {
           birth_date: string;
@@ -1074,29 +1089,15 @@ export type Database = {
       };
     };
     Views: {
-      favorite_drink_ids: {
-        Row: {
-          count: number | null;
-          id: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'hangout_drinks_drink_id_fkey';
-            columns: ['id'];
-            isOneToOne: false;
-            referencedRelation: 'drinks';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       hangout_leaderboard: {
         Row: {
           avatar: string | null;
-          drinks: Json | null;
+          count: number | null;
           hangout_id: string | null;
           id: string | null;
           name: string | null;
-          status: string | null;
+          units: number | null;
+          volume: number | null;
         };
         Relationships: [
           {
@@ -1113,19 +1114,41 @@ export type Database = {
             referencedRelation: 'hangouts_feed';
             referencedColumns: ['id'];
           },
-          {
-            foreignKeyName: 'hangout_drinks_hangout_id_fkey';
-            columns: ['hangout_id'];
-            isOneToOne: false;
-            referencedRelation: 'my_hangout_ids';
-            referencedColumns: ['id'];
-          },
         ];
+      };
+      hangout_participant_ids: {
+        Row: {
+          hangout_id: string | null;
+          user_id: string | null;
+        };
+        Relationships: [];
+      };
+      hangout_photos: {
+        Row: {
+          created_at: string | null;
+          hangout_id: string | null;
+          id: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          hangout_id?: never;
+          id?: string | null;
+          user_id?: never;
+        };
+        Update: {
+          created_at?: string | null;
+          hangout_id?: never;
+          id?: string | null;
+          user_id?: never;
+        };
+        Relationships: [];
       };
       hangouts_feed: {
         Row: {
           creator_id: string | null;
           ended_at: string | null;
+          ended_by: Database['public']['Enums']['hangout_ended_by'] | null;
           id: string | null;
           name: string | null;
           spot_image: string | null;
@@ -1182,27 +1205,55 @@ export type Database = {
         };
         Relationships: [];
       };
-      my_hangout_ids: {
+      unique_drink_ids: {
         Row: {
+          count: number | null;
           id: string | null;
+          user_id: string | null;
         };
-        Insert: {
-          id?: string | null;
-        };
-        Update: {
-          id?: string | null;
+        Relationships: [
+          {
+            foreignKeyName: 'hangout_drinks_drink_id_fkey';
+            columns: ['id'];
+            isOneToOne: false;
+            referencedRelation: 'drinks';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'hangout_leaderboard';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'my_buddies';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'hangout_drinks_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      unique_spot_ids: {
+        Row: {
+          count: number | null;
+          google_maps_id: string | null;
+          user_id: string | null;
         };
         Relationships: [];
       };
-      my_spot_ids: {
+      user_spot_ids: {
         Row: {
-          id: string | null;
-        };
-        Insert: {
-          id?: string | null;
-        };
-        Update: {
-          id?: string | null;
+          google_maps_id: string | null;
+          user_id: string | null;
         };
         Relationships: [];
       };
@@ -1211,8 +1262,18 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
+      achievement_triggers:
+        | 'drink_logged'
+        | 'custom_drink_created'
+        | 'spot_added'
+        | 'photo_uploaded'
+        | 'hangout_joined'
+        | 'hangout_ended'
+        | 'buddy_added'
+        | 'profile_shared';
       drink_categories: 'beer' | 'cider' | 'wine' | 'cocktail' | 'spirit';
       gender: 'male' | 'female';
+      hangout_ended_by: 'user' | 'system';
       notification_types:
         | 'buddy_request'
         | 'hangout_request'
@@ -1349,8 +1410,19 @@ export const Constants = {
   },
   public: {
     Enums: {
+      achievement_triggers: [
+        'drink_logged',
+        'custom_drink_created',
+        'spot_added',
+        'photo_uploaded',
+        'hangout_joined',
+        'hangout_ended',
+        'buddy_added',
+        'profile_shared',
+      ],
       drink_categories: ['beer', 'cider', 'wine', 'cocktail', 'spirit'],
       gender: ['male', 'female'],
+      hangout_ended_by: ['user', 'system'],
       notification_types: [
         'buddy_request',
         'hangout_request',

@@ -31,16 +31,24 @@ export default async function UserPage() {
   ] = await Promise.all([
     supabase.from('users').select().eq('id', auth.claims.sub).maybeSingle(),
     supabase.from('my_buddy_ids').select('*', { count: 'exact', head: true }),
-    supabase.from('my_hangout_ids').select('*', { count: 'exact', head: true }),
-    supabase.from('my_spot_ids').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('hangout_participant_ids')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', auth.claims.sub),
+    supabase
+      .from('unique_spot_ids')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', auth.claims.sub),
     supabase
       .from('hangout_drinks')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', auth.claims.sub),
     supabase
-      .from('favorite_drink_ids')
+      .from('unique_drink_ids')
       .select('count, drinks(name, category)')
+      .eq('user_id', auth.claims.sub)
       .gte('count', 3)
+      .order('count', { ascending: false })
       .limit(1)
       .maybeSingle(),
     supabase

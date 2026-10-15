@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
+    "check": "deno check --config supabase/functions/deno.json supabase/functions",
     "prepare": "git config core.hooksPath .githooks || true",
     "db:types": "supabase gen types typescript --local > lib/supabase/types.ts",
     "db:reset": "supabase db reset && npm run db:types"
@@ -48,6 +49,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "deno": "^2.9.6",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "eslint-config-prettier": "^10.1.8",

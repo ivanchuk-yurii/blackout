@@ -12,7 +12,8 @@ select
 ,
   insert,
 update,
-delete on tables to authenticated;
+delete on tables to authenticated,
+service_role;
 
 create or replace function private.rls_auto_enable () returns event_trigger language plpgsql security definer
 set

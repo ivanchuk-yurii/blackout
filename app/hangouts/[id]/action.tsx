@@ -131,7 +131,10 @@ export function Action({
   async function handleRestart() {
     const supabase = createClient();
     const restarted = await run('restart', () =>
-      supabase.from('hangouts').update({ ended_at: null }).eq('id', hangoutId),
+      supabase
+        .from('hangouts')
+        .update({ ended_at: null, ended_by: 'user' })
+        .eq('id', hangoutId),
     );
     if (restarted)
       posthog.capture('hangout_restarted', {

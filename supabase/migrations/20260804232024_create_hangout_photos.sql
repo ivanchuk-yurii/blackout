@@ -22,6 +22,19 @@ set
   select (storage.foldername (object_name))[1]::uuid;
 $$;
 
+create view public.hangout_photos
+with
+  (security_invoker = on) as
+select
+  o.id,
+  private.hangout_photo_id (o.name) as hangout_id,
+  o.owner_id::uuid as user_id,
+  o.created_at
+from
+  storage.objects o
+where
+  o.bucket_id = 'hangout-photos';
+
 create policy "participant reads hangout photo" on storage.objects for
 select
   to authenticated using (
